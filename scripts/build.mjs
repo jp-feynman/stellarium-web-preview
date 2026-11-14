@@ -59,7 +59,7 @@ try {
   }
   await cp(join(root, 'README.md'), join(staging, 'README.md'));
   await writeFile(join(staging, '.nojekyll'), '');
-  await writeFile(join(staging, marker), JSON.stringify({ project: 'spherex-sky-lab', version: '2.1.0', builtAt: new Date().toISOString() }, null, 2) + '\n');
+  await writeFile(join(staging, marker), JSON.stringify({ project: 'spherex-sky-lab', version: '2.2.0', builtAt: new Date().toISOString() }, null, 2) + '\n');
   for (const required of ['index.html', 'planetarium/index.html', 'analysis/index.html', 'planetarium/engine/stellarium-web-engine.wasm']) {
     if (!(await exists(join(staging, required)))) throw new Error(`Missing combined output: ${required}`);
   }
@@ -88,7 +88,7 @@ try {
     }
   }
   await count(output);
-  console.log(`SPHEREx Sky Lab v2.1.0 built: ${files} files, ${(bytes / 1048576).toFixed(1)} MiB.\nRun npm run preview, then open the printed local URL.`);
+  console.log(`SPHEREx Sky Lab v2.2.0 built: ${files} files, ${(bytes / 1048576).toFixed(1)} MiB.\nRun npm run preview, then open the printed local URL.`);
 } catch (error) {
   console.error(`The last successful build is preserved. Inspect incomplete output at ${staging}.`);
   throw error;

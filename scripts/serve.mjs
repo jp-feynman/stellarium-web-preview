@@ -136,7 +136,7 @@ export async function startSiteServer(args = process.argv.slice(2)) {
   {
     const displayHost = host === '0.0.0.0' ? '127.0.0.1' : host.includes(':') ? `[${host}]` : host;
     const url = `http://${displayHost}:${actualPort}/`;
-    console.log(`SPHEREx Sky Lab v2.1.0\nLocal: ${url}\nPlanetarium: ${url}planetarium/\nAnalysis: ${url}analysis/\nPress Ctrl+C to stop.`);
+    console.log(`SPHEREx Sky Lab v2.2.0\nLocal: ${url}\nPlanetarium: ${url}planetarium/\nAnalysis: ${url}analysis/\nPress Ctrl+C to stop.`);
     if (args.includes('--open')) {
       const executable = process.platform === 'win32' ? 'rundll32.exe' : process.platform === 'darwin' ? 'open' : 'xdg-open';
       const commandArgs = process.platform === 'win32' ? ['url.dll,FileProtocolHandler', url] : [url];

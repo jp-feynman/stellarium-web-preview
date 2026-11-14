@@ -1,6 +1,6 @@
 {
   "name": "spherex-sky-lab",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "private": true,
   "type": "module",
   "description": "SPHEREx Sky Lab: a black-hole entrance, Stellarium planetarium and TrueBlink analysis workspace.",
@@ -10,6 +10,6 @@
     "build": "node scripts/build.mjs",
     "preview": "node scripts/serve.mjs",
     "start": "node scripts/setup.mjs && node scripts/build.mjs && node scripts/serve.mjs --open",
-    "test": "node --test scripts/server.test.mjs 중선/v1.2.0/tests/analysis-target.test.mjs 중선/v1.2.0/tests/analysis-lifecycle.test.mjs 중선/v1.2.0/tests/render-lifecycle.test.mjs 한결/BLACKHOLE_BG/tests/navigation.test.mjs"
+    "test": "node --test scripts/server.test.mjs 중선/v1.2.0/tests/analysis-target.test.mjs 중선/v1.2.0/tests/analysis-lifecycle.test.mjs 중선/v1.2.0/tests/render-lifecycle.test.mjs 중선/v1.2.0/tests/sky-click.test.mjs 중선/v1.2.0/tests/sky-click-interaction.test.mjs 한결/BLACKHOLE_BG/tests/navigation.test.mjs"
   }
 }

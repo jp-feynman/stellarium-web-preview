@@ -38,7 +38,7 @@ export function createAnalysisController({ getEngine, notify, onVisibilityChange
     $('#analysis-position').textContent = `ICRF · RA ${target.ra.toFixed(5)}° · Dec ${target.dec.toFixed(5)}°`;
     $('#analysis-context').textContent = target.moving
       ? '선택한 관측 시각의 위치 주변을 조회합니다. 이동 천체 자체의 과거 관측을 추적한 결과는 아닙니다.'
-      : '선택한 천체의 좌표로 보관 자료를 조회합니다. 분석창을 닫으면 보던 하늘로 돌아갑니다.';
+      : '선택한 하늘 위치 주변의 SPHEREx 보관 자료를 조회합니다. 분석창을 닫으면 보던 하늘로 돌아갑니다.';
     $('#analysis-new-tab').href = buildAnalysisUrl(target, base, false);
     $('#analysis-loading').hidden = false;
     $('#analysis-loading').textContent = '분석 도구를 불러오는 중…';
@@ -57,12 +57,6 @@ export function createAnalysisController({ getEngine, notify, onVisibilityChange
   }
 
   $('#selection-analyze').addEventListener('click', () => open(selectionTarget()));
-  $('#analyze-center').addEventListener('click', () => {
-    const engine = getEngine();
-    if (!engine) return;
-    const direction = engine.convertFrame(engine.observer, 'VIEW', 'ICRF', [0, 0, -1, 0]);
-    open(targetFromVector(direction, '화면 중심'));
-  });
   $('#close-analysis').addEventListener('click', () => dialog.close());
   dialog.addEventListener('close', () => {
     opening++;
@@ -80,5 +74,5 @@ export function createAnalysisController({ getEngine, notify, onVisibilityChange
     if (event.origin !== location.origin || event.source !== frame.contentWindow) return;
     if (event.data?.type === 'spherex-analysis-close' && dialog.open) dialog.close();
   });
-  return { updateSelection };
+  return { updateSelection, open };
 }

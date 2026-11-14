@@ -4,7 +4,7 @@
 .selection-coordinates { margin: 0; color: var(--cyan); font-size: 11px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .selection-analysis .field-note { margin-bottom: 0; }
 .analysis-entry { padding: 18px 20px; border-bottom: 1px solid var(--line); }
-.analysis-entry .button { width: 100%; }
+.analysis-entry strong { color: var(--cyan); font-size: 13px; }
 .analysis-entry p { color: var(--muted); font-size: 12px; line-height: 1.65; margin: 8px 0 0; }
 .analysis-dialog { color: var(--ivory); background: #080f18; border: 1px solid #395366; padding: 0; width: min(1560px, 96vw); max-width: none; height: 94dvh; max-height: none; border-radius: 16px; overflow: hidden; }
 .analysis-dialog[open] { display: flex; flex-direction: column; }

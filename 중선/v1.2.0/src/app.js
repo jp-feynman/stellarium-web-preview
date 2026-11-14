@@ -1,6 +1,7 @@
 /* Stellarium Web Lab v1.2.0 — SPDX-License-Identifier: AGPL-3.0-only */
 import { capitals } from './capitals.js';
 import { createAnalysisController } from './analysis.js';
+import { bindSkyClickAnalysis } from './sky-click.js';
 
 const $ = (selector) => document.querySelector(selector);
 const rad = Math.PI / 180;
@@ -223,7 +224,7 @@ function syncViewControls() {
   $('#layer-atmosphere').disabled = allsky;
   $('#map-banner').hidden = !allsky;
   $('#reset-view').title = allsky ? '전천 지도 전체 보기' : '시야 초기화';
-  $('#sky-hint').textContent = allsky ? '드래그로 지도 이동 · 스크롤로 확대 / 축소' : '드래그로 하늘 이동 · 스크롤로 확대 / 축소';
+  $('#sky-hint').textContent = allsky ? '클릭하여 분석 · 드래그로 지도 이동 · 스크롤로 확대 / 축소' : '클릭하여 분석 · 드래그로 하늘 이동 · 스크롤로 확대 / 축소';
   if (allsky) $('#coordinate-hint').textContent = '360° 천구를 펼친 지도입니다. 적경·적위는 ICRF 기준이며, 지형과 대기는 숨깁니다.';
   fitSkyCanvas();
 }
@@ -685,7 +686,10 @@ async function onReady(engine) {
     if (fonts.some((result) => result.status === 'rejected')) console.warn('외부 폰트를 불러오지 못해 엔진의 기본 폰트를 사용합니다.');
     clearTimeout(startupTimer);
     ready = true;
-    $('#analyze-center').disabled = false;
+    bindSkyClickAnalysis({
+      engine: stel, canvas: $('#sky-canvas'), onTarget: analysis.open,
+      canAnalyze: () => ready && !coordinateTransition && !viewTransition && !$('#help-dialog').open && !$('#analysis-dialog').open,
+    });
     syncViewControls();
     $('#loading-overlay').hidden = true;
     $('#engine-status').textContent = '하늘 탐색 중';

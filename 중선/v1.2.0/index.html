@@ -33,10 +33,10 @@
     </svg>
 
     <main id="observatory" aria-label="Stellarium 웹 천체 관측 화면">
-      <canvas id="sky-canvas" aria-label="천체 지도. 드래그하여 방향을 바꾸고 스크롤하여 확대할 수 있습니다." tabindex="0"></canvas>
+      <canvas id="sky-canvas" aria-label="천체 지도. 클릭하면 해당 하늘 위치를 SPHEREx로 분석합니다. 드래그로 이동하고 스크롤로 확대합니다." tabindex="0"></canvas>
       <div id="center-marker" class="center-marker" aria-hidden="true" hidden></div>
       <aside id="map-banner" class="map-banner" aria-label="전천 지도 정보" hidden>
-        <div><p class="eyebrow">ALL-SKY MAP</p><h2>360° 전천 지도 <span id="map-fov">360.0°</span></h2><p class="map-source">Stellarium 별지도 · 천체를 선택해 SPHEREx 분석</p></div>
+        <div><p class="eyebrow">ALL-SKY MAP</p><h2>360° 전천 지도 <span id="map-fov">360.0°</span></h2><p class="map-source">Stellarium 별지도 · 원하는 위치를 클릭해 SPHEREx 분석</p></div>
         <button id="map-full-view" class="button button-secondary" type="button" disabled>전체 보기</button>
       </aside>
 
@@ -49,7 +49,7 @@
             <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="10" /><ellipse cx="20" cy="20" rx="18" ry="7" transform="rotate(-37 20 20)" /><path d="M20 6v4m0 20v4M6 20h4m20 0h4" /><circle class="orbital-point" cx="33.3" cy="9.9" r="2.4" /></svg>
             <span class="brand-name">SPHEREx <span class="brand-divider">/</span><span class="brand-subtitle">SKY LAB</span></span>
           </a>
-          <span class="version-tag">v2.1.0</span>
+          <span class="version-tag">v2.2.0</span>
         </div>
         <div class="topbar-actions">
           <span id="engine-status" class="engine-status" role="status" aria-live="polite">엔진 준비 중</span>
@@ -74,11 +74,11 @@
         <div class="panel-heading">
           <p class="eyebrow">YOUR OBSERVATION DESK</p>
           <h1>나만의 하늘 탐색<span class="heading-dot" aria-hidden="true">.</span></h1>
-          <p class="panel-intro">천체를 클릭하고 SPHEREx 관측 자료를 분석하세요.</p>
+          <p class="panel-intro">하늘의 원하는 위치를 클릭하면 SPHEREx 분석이 열립니다.</p>
         </div>
         <section class="analysis-entry" aria-label="SPHEREx 분석 안내">
-          <button id="analyze-center" class="button button-secondary" type="button" disabled>화면 중심의 SPHEREx 자료 분석</button>
-          <p>별이나 천체를 클릭하면 정보창에서 해당 천체의 분석을 시작할 수 있습니다.</p>
+          <strong>클릭한 하늘 영역 분석</strong>
+          <p>별이 없는 곳도 클릭할 수 있습니다. 드래그는 하늘 이동, 스크롤·두 손가락 제스처는 확대·축소입니다.</p>
         </section>
 
         <fieldset id="app-controls" disabled>
@@ -213,7 +213,7 @@
         <button id="reset-view" class="icon-button" type="button" aria-label="기본 시야로 돌아가기" title="시야 초기화"><svg class="icon"><use href="#icon-reset" /></svg></button>
       </div>
 
-      <div id="sky-hint" class="sky-hint" aria-hidden="true">드래그로 하늘 이동 · 스크롤로 확대 / 축소</div>
+      <div id="sky-hint" class="sky-hint" aria-hidden="true">클릭하여 분석 · 드래그로 하늘 이동 · 스크롤로 확대 / 축소</div>
       <footer class="observation-status" aria-label="현재 관측 상태">
         <div class="status-location"><svg class="icon"><use href="#icon-pin" /></svg><span id="location-status">서울 · 37.5665° N, 126.9780° E</span></div>
         <div class="status-time"><svg class="icon"><use href="#icon-clock" /></svg><time id="time-status">관측 시간 준비 중</time></div>
@@ -229,18 +229,18 @@
       </header>
       <p id="analysis-context" class="analysis-context"></p>
       <p id="analysis-loading" class="analysis-loading" role="status">분석 도구를 불러오는 중…</p>
-      <iframe id="analysis-frame" class="analysis-frame" src="about:blank" title="선택한 천체의 TrueBlink SPHEREx 분석 도구" allow="fullscreen"></iframe>
+      <iframe id="analysis-frame" class="analysis-frame" src="about:blank" title="선택한 하늘 위치의 TrueBlink SPHEREx 분석 도구" allow="fullscreen"></iframe>
     </dialog>
 
     <dialog id="help-dialog" class="help-dialog" aria-labelledby="help-title">
       <div class="dialog-heading"><div><p class="eyebrow">WELCOME TO THE SKY</p><h2 id="help-title">Stellarium Web Lab</h2></div><button id="close-help" class="icon-button" type="button" aria-label="도움말 닫기"><svg class="icon"><use href="#icon-close" /></svg></button></div>
       <p class="dialog-intro">웹 브라우저에서 실행되는 나만의 천체 관측 도구입니다.</p>
-      <p class="dialog-intro">‘전천 지도’는 360° 하늘을 타원형 몰바이데 투영으로 펼칩니다. 드래그·확대와 천체 검색을 사용할 수 있고, ‘전체 보기’로 지도를 초기화합니다. 하늘 보기로 돌아오면 이전 시야와 지표면·대기 설정이 복원됩니다. 배경 지도는 Stellarium 자료입니다. 천체를 클릭한 뒤 ‘SPHEREx 분석’을 누르면 해당 위치의 관측 영상과 파장별 분석을 TrueBlink에서 열 수 있습니다.</p>
+      <p class="dialog-intro">‘전천 지도’는 360° 하늘을 타원형 몰바이데 투영으로 펼칩니다. 드래그·확대와 천체 검색을 사용할 수 있고, ‘전체 보기’로 지도를 초기화합니다. 하늘 보기로 돌아오면 이전 시야와 지표면·대기 설정이 복원됩니다. 배경 지도는 Stellarium 자료입니다. SPHEREx‘SPHEREx 분석’을 누르면 해당 위치의 관측 영상과 파장별 분석을 TrueBlink에서 열 수 있습니다.</p>
       <p class="dialog-intro">‘좌표계’에서 천구 좌표계를 선택하거나 오른쪽 ‘천구’ 버튼을 누르면 적경·적위 격자로 볼 수 있습니다. 화면 중심 좌표를 확인하고, 적경(시간)·적위(도)를 입력해 이동하세요. 격자와 좌표 값은 ICRF 기준입니다.</p>
-      <dl class="help-shortcuts"><div><dt>하늘 이동</dt><dd>화면을 드래그하거나 터치해 이동</dd></div><div><dt>확대 · 축소</dt><dd>마우스 휠, 두 손가락 제스처 또는 + / − 버튼</dd></div><div><dt>지표면</dt><dd>오른쪽 지표면 버튼 또는 G 키로 켜기 · 끄기</dd></div><div><dt>천체 선택</dt><dd>하늘의 천체를 클릭하거나 이름으로 검색</dd></div><div><dt>관측 조건</dt><dd>탐색 도구에서 위치·시간·레이어 조절</dd></div></dl>
-      <div class="help-note"><h3>이 버전에 대하여</h3><p>공식 Stellarium Web Engine을 사용하는 웹 프로젝트입니다. 선택한 천체의 ICRF 좌표를 경보 팀원의 TrueBlink 분석 도구로 전달합니다. 자료 조회에는 인터넷 연결이 필요하며, 관측 범위와 품질에 따라 결과가 없을 수 있습니다.</p></div>
+      <dl class="help-shortcuts"><div><dt>하늘 이동</dt><dd>화면을 드래그하거나 터치해 이동</dd></div><div><dt>확대 · 축소</dt><dd>마우스 휠, 두 손가락 제스처 또는 + / − 버튼</dd></div><div><dt>지표면</dt><dd>오른쪽 지표면 버튼 또는 G 키로 켜기 · 끄기</dd></div><div><dt>하늘 영역 분석</dt><dd>원하는 하늘 위치를 클릭하거나 한 번 탭</dd></div><div><dt>천체 검색</dt><dd>이름으로 검색한 뒤 정보창에서 정확한 천체 좌표 분석</dd></div><div><dt>관측 조건</dt><dd>탐색 도구에서 위치·시간·레이어 조절</dd></div></dl>
+      <div class="help-note"><h3>이 버전에 대하여</h3><p>공식 Stellarium Web Engine을 사용하는 웹 프로젝트입니다. 클릭한 하늘 위치의 ICRF 좌표를 경보 팀원의 TrueBlink 분석 도구로 전달합니다. 자료 조회에는 인터넷 연결이 필요하며, 관측 범위와 품질에 따라 결과가 없을 수 있습니다.</p></div>
       <div class="help-links"><a href="./source/" target="_blank" rel="noopener">소스 코드 ↗</a><a href="./LICENSE-AGPL-3.0.txt" target="_blank" rel="noopener">AGPL-3.0 라이선스 ↗</a><a href="https://github.com/Stellarium/stellarium-web-engine" target="_blank" rel="noopener">공식 웹 엔진 ↗</a></div>
-      <p class="help-version">SPHEREx SKY LAB <span>v2.1.0</span></p>
+      <p class="help-version">SPHEREx SKY LAB <span>v2.2.0</span></p>
     </dialog>
   </body>
 </html>

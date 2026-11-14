@@ -28,7 +28,7 @@ function setup(t) {
   globalThis.window = { addEventListener() {} };
   globalThis.location = { origin: 'https://example.test' };
   globalThis.requestAnimationFrame = callback => { paints.push(callback); return paints.length; };
-  createAnalysisController({
+  const controller = createAnalysisController({
     getEngine: () => ({ observer: {}, convertFrame: () => [1, 0, 0, 0] }),
     notify: () => assert.fail('Expected a usable target'),
     onVisibilityChange: visible => events.push(visible ? 'pause' : 'resume'),
@@ -41,7 +41,7 @@ function setup(t) {
     }
   });
   const paint = () => { for (const fn of paints.splice(0)) fn(); };
-  return { element, events, paint, open: () => element('#analyze-center').emit('click') };
+  return { element, events, paint, open: () => controller.open({ ra: 0, dec: 0, label: '클릭한 하늘 영역' }) };
 }
 
 test('analysis pauses the sky and paints the dialog before loading its app; closing unloads before resuming', t => {
