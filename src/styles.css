@@ -73,6 +73,20 @@ svg { flex-shrink: 0; }
 .panel-heading h1 { margin: 0; font-size: 23px; font-weight: 600; line-height: 1.4; letter-spacing: -.055em; }
 .heading-dot { color: var(--cyan); padding-left: 1px; }
 .panel-intro { margin: 8px 0 0; color: var(--muted); font-size: 12px; letter-spacing: -.02em; }
+.view-mode-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 20px; padding: 4px; border: 1px solid var(--line); border-radius: 9px; background: #0b1721; }
+.view-mode-switch .button { padding: 8px 6px; border-color: transparent; }
+.view-mode-switch .button[aria-pressed="true"] { color: var(--cyan); border-color: #527c87; background: #203b46; }
+.map-banner { position: absolute; z-index: 12; top: calc(var(--topbar-height) + 20px); left: 364px; right: 96px; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.map-banner .eyebrow { margin-bottom: 5px; }
+.map-banner h2 { margin: 0; font-size: 20px; font-weight: 550; }
+.map-banner h2 span { margin-left: 8px; font-size: 12px; color: var(--cyan); font-variant-numeric: tabular-nums; }
+.map-source { margin: 5px 0 0; font-size: 12px; color: var(--muted); }
+.allsky-view #observatory { background: radial-gradient(ellipse at 55% 50%, #162c39 0, #0b141d 75%); }
+.allsky-view #sky-canvas { border: 1px solid #375261; border-radius: 50%; }
+.allsky-view .sky-hint { left: 50%; }
+.allsky-view #toggle-ground, .allsky-view #toggle-coordinates { display: none; }
+.allsky-view #toggle-ground + .view-control-rule, .allsky-view #toggle-coordinates + .view-control-rule { display: none; }
+button:disabled { cursor: default; }
 #app-controls { min-width: 0; margin: 0; padding: 0 21px; border: 0; }
 #app-controls:disabled { opacity: .42; }
 #app-controls:disabled :where(button, input, select) { cursor: wait; }
@@ -102,6 +116,16 @@ option { background: #101d29; }
 .search-results :where(button, a):hover { background: var(--cyan-soft); }
 .search-results small { color: var(--muted); font-size: 10px; }
 .coordinates-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 47px; align-items: end; gap: 7px; margin-top: 11px; }
+.coordinate-readout { margin-top: 12px; padding: 10px 12px; background: var(--cyan-soft); border: 1px solid var(--line); border-radius: 8px; }
+.coordinate-readout p { margin: 0 0 7px; color: var(--cyan); font-size: 12px; }
+.coordinate-readout dl { margin: 0; display: grid; gap: 6px; font-variant-numeric: tabular-nums; }
+.coordinate-readout dl > div { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.coordinate-readout dt { color: var(--muted); font-size: 12px; }
+.coordinate-readout dd { margin: 0; font-size: 14px; white-space: nowrap; }
+.coordinate-inputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.equatorial-target .button { width: 100%; margin-top: 10px; }
+.center-marker { position: absolute; z-index: 9; left: 50%; top: 50%; width: 18px; height: 18px; transform: translate(-50%, -50%); border: 1px solid rgba(145, 223, 223, .8); border-radius: 50%; pointer-events: none; box-shadow: 0 0 5px #000; }
+.center-marker::after { content: ''; position: absolute; left: 7px; top: 7px; width: 2px; height: 2px; background: var(--cyan); }
 .location-search { margin-bottom: 8px; }
 .location-search-status { margin: 6px 0 0; color: #91a6b5; font-size: 12px; }
 #location-input-hint { margin-bottom: 0; line-height: 1.65; }
@@ -166,7 +190,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator { opacity: .65; 
 .view-controls .icon-button { width: 35px; height: 35px; }
 .view-controls .ground-toggle { width: 48px; height: 55px; flex-direction: column; gap: 3px; font-size: 11px; }
 .ground-toggle[aria-pressed="true"] { color: var(--cyan); border-color: #7cb9bc; background: #25474e; }
-.ground-toggle span { line-height: 1.3; }
+.ground-toggle span { line-height: 1.3; white-space: nowrap; }
 .layer-toggle kbd { margin-left: 3px; padding: 1px 4px; border: 1px solid #415465; border-radius: 3px; color: #91b4c1; font: 10px system-ui, sans-serif; }
 .view-control-rule { width: 18px; height: 1px; margin: 4px 0; background: var(--line); }
 .sky-hint { position: absolute; z-index: 10; left: calc(50% + 50px); bottom: 91px; transform: translateX(-50%); display: flex; align-items: center; gap: 7px; color: rgba(197, 212, 221, .6); font-size: 10px; pointer-events: none; text-shadow: 0 1px 5px #000; white-space: nowrap; }
@@ -230,6 +254,11 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator { opacity: .65; 
   .status-time { justify-content: flex-end; }
 }
 @media (max-width: 760px) {
+  .map-banner { right: 64px; gap: 8px; }
+  .map-banner h2 { font-size: 16px; }
+  .map-source { font-size: 10px; }
+  .map-banner .button { font-size: 11px; padding: 7px; }
+  .allsky-view:not(.panel-closed) .map-banner { visibility: hidden; }
   :root { --topbar-height: 62px; }
   .topbar { padding: 0 12px; gap: 10px; }
   .brand-group { gap: 10px; }
@@ -252,6 +281,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator { opacity: .65; 
   body:not(.panel-closed) .control-panel:not([hidden]) ~ .selection-panel { z-index: 22; }
   .view-controls { right: 12px; bottom: 92px; padding: 4px; }
   .view-controls .icon-button { width: 30px; height: 33px; }
+  .view-controls .ground-toggle { width: 34px; height: 50px; font-size: 10px; flex-shrink: 0; }
   .observation-status { left: 12px; right: 12px; bottom: 12px; flex-wrap: wrap; gap: 5px 10px; padding: 9px 12px; min-height: 57px; font-size: 10px; }
   .status-location { flex-basis: calc(100% - 82px); }
   .status-time { order: 3; flex-basis: 100%; justify-content: flex-start; }

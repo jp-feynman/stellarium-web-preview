@@ -108,9 +108,32 @@ function readCoordinates(stel, obj) {
 }
 ```
 
-위 RA/Dec 표시는 엔진의 ICRF 축 기준 방향입니다. 벡터 길이를 거리로 해석하지 않습니다. `OBSERVED` 좌표는 대기 굴절을 포함합니다. 굴절을 제외한 고도·방위각이 필요하면 `OBSERVED_GEOM`으로 변환하세요. `stel.lookAt(vector, seconds)`는 **OBSERVED 방향 벡터**를 받으므로 RA/Dec 숫자를 직접 넘기지 마세요.
+위 RA/Dec 표시는 엔진의 ICRF 축 기준 방향입니다. 벡터 길이를 거리로 해석하지 않습니다. `OBSERVED` 좌표는 대기 굴절을 포함합니다. 굴절을 제외한 고도·방위각이 필요하면 `OBSERVED_GEOM`으로 변환하세요. `stel.lookAt(vector, seconds)`의 실제 C 구현은 **MOUNT 방향 벡터**를 받습니다. 기본 지평 마운트에서는 OBSERVED와 같지만, 천구 모드에서는 반드시 MOUNT로 변환하세요.
+
+## 천구 좌표계 보기 (v1.2.0)
+
+`core.mount_frame`은 `stel.FRAME_OBSERVED`와 `stel.FRAME_ICRF`만 지원합니다. `FRAME_JNOW` 등을 지정하면 엔진의 assertion이 발생하므로 사용하지 않습니다. `navigation.c`의 ICRF 마운트는 내부적으로 관측자 CIRS 회전 행렬을 사용하므로 **카메라 yaw/pitch를 ICRF 적경·적위로 해석하지 않습니다.** 격자 `core.lines.equatorial`와 아래 변환 결과는 ICRF 축 기준입니다. 엄밀한 J2000 역기원 천체 카탈로그 좌표나 고유운동 보정을 제공하는 기능은 아닙니다.
+
+```js
+// 화면 중심: VIEW에서 전방은 -Z입니다.
+const center = stel.convertFrame(stel.observer, 'VIEW', 'ICRF', [0, 0, -1, 0]);
+const [ra, dec] = stel.c2s(center);
+const target = stel.s2c(raHours * Math.PI / 12, decDegrees * DEG);
+stel.core.lock = null;
+stel.lookAt(stel.convertFrame(stel.observer, 'ICRF', 'MOUNT', target), 0.5);
+```
+
+좌표계 전환은 현재 ICRF 중심을 저장하고 추적·이동 애니메이션을 해제한 뒤 mount를 변경합니다. 엔진의 프레임 업데이트 후 저장된 중심을 새 MOUNT로 변환해 시선을 복원합니다. 지표면 설정은 유지됩니다. 공유 URL의 `frame=equatorial`은 yaw/pitch를 적용하기 전에 복원하며, 숫자 입력은 유한값과 적경 0~24h/적위 ±90° 범위를 검사합니다.
 
 ## HiPS와 성능 범위
+
+### 전천 투영
+
+`core.projection = 5`는 이 버전에 컴파일된 `PROJ_MOLLWEIDE`이며 `zoomTo(2 * Math.PI, 0)`으로 전천을 표시합니다. 근거는 `src/projection.h`, `src/projections/proj_mollweide.c`, `src/assets/shaders.inl`입니다. 전천 지도는 2:1 캔버스를 사용하여 360° 상한에서도 극이 잘리지 않게 합니다. 이동·휠·핀치는 기존 엔진의 역투영을 사용합니다. 미완성인 Hammer/Mercator 투영은 선택하지 않습니다.
+
+전환 시 기존 시야·마운트·레이어를 보관하고, 적도 마운트와 ICRF 격자로 바꾸며 지형·안개·대기를 숨깁니다. 나갈 때 저장한 상태를 복원합니다. 공유 URL은 `view=allsky`를 먼저 적용한 뒤 FOV(최대 360°)와 yaw/pitch를 복원합니다. 기본 하늘 보기에서는 기존 150° 버튼 상한을 유지합니다. `view=allsky`가 없는 접속은 지표면을 표시합니다.
+
+지도 배경은 번들 은하수 데이터입니다. 이 기능은 IRSA Firefly나 SPHEREx HiPS cube 연결을 포함하지 않으며, DSS 모듈의 넓은 시야 숨김 규칙은 그대로 적용됩니다.
 
 - 외부 DSS 영상: `core.dss.addDataSource({ url: 'https://irsa.ipac.caltech.edu/data/hips/CDS/DSS2/color' })`. [원본 properties](https://irsa.ipac.caltech.edu/data/hips/CDS/DSS2/color/properties)에서 JPEG, equatorial, HiPS 1.4를 확인했습니다. 브라우저의 외부 서버 접근·CORS·네트워크 상태에 의존합니다.
 - `dss` 모듈은 데이터 소스 한 개를 교체하여 표시합니다. Upstream의 밝기 로직은 FOV 20° 이상에서 숨기고 10° 이하에서 표시하도록 되어 있으며 다른 밝기 설정의 영향도 받습니다.

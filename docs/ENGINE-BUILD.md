@@ -13,7 +13,7 @@ The website uses the JavaScript and WebAssembly pair in `engine/`. These files w
 - SCons: 4.8.1; setuptools: 75.8.0, isolated using pip `--target`.
 - SDK Node runtime: 24.19.0. The website packaging separately supports Node.js 22 or newer.
 - Build command: `python -m SCons -j4 mode=release build/stellarium-web-engine.js`
-- Output: `stellarium-web-engine.js` (104,539 bytes), `stellarium-web-engine.wasm` (1,199,274 bytes).
+- Output: the matching `stellarium-web-engine.js` and `stellarium-web-engine.wasm`; exact sizes and hashes are recorded in `engine/build-info.json` after each rebuild.
 
 The generated `engine/build-info.json` records the output SHA256 hashes and exact tool versions. JavaScript syntax and `WebAssembly.Module` compilation were verified after the build.
 
@@ -43,5 +43,6 @@ The source ZIP distributed by the website includes the whole source tree and thi
 3. **`src/js/canvas.js`**: compare the canvas backing dimensions with rounded physical pixels, avoiding a resize on every frame at non-unit device pixel ratio. Add live `Module.maxPixelRatio` control; the app defaults to 1.5, with 1 and 2 available.
 4. **`src/js/pre.js`**: request WebGL's `high-performance` power preference. The browser and operating system retain the final GPU choice.
 5. **`data/font/OFL.txt`**: supply the SIL Open Font License alongside the bundled Noto Sans subset fonts. Font metadata identifies Copyright 2019 Google Inc.; license text comes from the official Google Fonts Noto Sans package.
+6. **`src/modules/lines.c`**: bound grid-label intersection subdivision to 32 steps and reject nonfinite coordinates or a midpoint that cannot progress. At the Mollweide seam, screen-space endpoints may remain separated even after the spherical interval collapses. Previously this exhausted the WebAssembly call stack and stopped animation. The guard omits an unresolved border label while retaining the grid itself.
 
 Upstream algorithm and coordinate definitions remain in the vendored source. The custom interface and integration are in the top-level `index.html` and `src/`, separately from engine internals.

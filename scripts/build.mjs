@@ -2,6 +2,7 @@ import { access, cp, mkdir, readFile, readdir, rename, rm, stat, writeFile } fro
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { deflateRawSync } from 'node:zlib';
+import { setTimeout as delay } from 'node:timers/promises';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const output = join(root, 'dist');
@@ -157,11 +158,18 @@ try {
   await makeSourceIndex(sourceRoot);
   await zipSource();
   await writeFile(join(staging, 'source', 'index.html'), page('Stellarium Web Lab source', '<a href="../">← Back to Stellarium</a><h1>Stellarium Web Lab — corresponding source</h1><p>This site includes its application source, the full vendored Stellarium Web Engine source, bundled data, patches, and build scripts. Engine binaries are generated from this source.</p><ul><li><a href="stellarium-web-lab-source.zip" download>Download complete corresponding source (.zip)</a></li><li><a href="project/directory.html">Browse source files</a></li><li><a href="project/README.md" download>Build and deployment instructions</a></li><li><a href="../LICENSE-AGPL-3.0.txt">GNU Affero General Public License</a></li></ul><p>The original engine is maintained by <a href="https://github.com/Stellarium/stellarium-web-engine">Stellarium</a>. This project is a separate application using that engine.</p>'));
-  await writeFile(join(staging, marker), JSON.stringify({ project: 'stellarium-web-lab', version: '1.1.0', builtAt: new Date().toISOString() }, null, 2) + '\n');
+  await writeFile(join(staging, marker), JSON.stringify({ project: 'stellarium-web-lab', version: '1.2.0', builtAt: new Date().toISOString() }, null, 2) + '\n');
   // Both paths are fixed direct children of the project root. Only this build's
   // marked dist folder is replaced, after all inputs have copied successfully.
   if (await exists(output)) await rm(output, { recursive: true });
-  await rename(staging, output);
+  // Windows file indexing can briefly hold the completed directory open.
+  for (let attempt = 0; ; attempt++) {
+    try { await rename(staging, output); break; }
+    catch (error) {
+      if (!['EPERM', 'EBUSY', 'EACCES'].includes(error.code) || attempt >= 5) throw error;
+      await delay(100 * 2 ** attempt);
+    }
+  }
   let bytes = 0;
   let files = 0;
   async function count(directory) {

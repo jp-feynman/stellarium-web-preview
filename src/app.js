@@ -1,4 +1,4 @@
-/* Stellarium Web Lab v1.1.0 — SPDX-License-Identifier: AGPL-3.0-only */
+/* Stellarium Web Lab v1.2.0 — SPDX-License-Identifier: AGPL-3.0-only */
 import { capitals } from './capitals.js';
 
 const $ = (selector) => document.querySelector(selector);
@@ -52,6 +52,13 @@ let statusTimer;
 let dssAdded = false;
 let ready = false;
 let timeInputDirty = false;
+let coordinateMode = 'horizon';
+let coordinateChangeId = 0;
+let coordinateTransition = false;
+let viewMode = 'sky';
+let viewTransition = false;
+let savedSkyView = null;
+const MOLLWEIDE_PROJECTION = 5;
 const normalize = (value) => value.toLocaleLowerCase().replace(/\s+/g, '').trim();
 
 function toast(message) {
@@ -126,6 +133,184 @@ function syncTime() {
   }).format(date);
   if (!timeInputDirty && document.activeElement !== $('#observation-time')) $('#observation-time').value = toLocalInput(date);
   $('#fov-status').textContent = `${(stel.core.fov / rad).toFixed(1)}°`;
+  $('#map-fov').textContent = `${(stel.core.fov / rad).toFixed(1)}°`;
+  syncCoordinates();
+}
+
+function centerDirection(frame) {
+  return stel.convertFrame(stel.observer, 'VIEW', frame, [0, 0, -1, 0]);
+}
+
+function setFovImmediately(fov) {
+  // The engine's duration=0 path leaves an older zoom animation active.
+  // A near-instant target replaces it so startup/reset cannot snap back.
+  stel.core.fov = fov;
+  stel.zoomTo(fov, 0.001);
+}
+
+function formatRightAscension(angle) {
+  // Round before splitting so a minute/second rollover never displays 60.
+  const seconds = Math.round(stel.anp(angle) * 43200 / Math.PI) % 86400;
+  const pad = (value) => String(value).padStart(2, '0');
+  return `${pad(Math.floor(seconds / 3600))}h ${pad(Math.floor(seconds / 60) % 60)}m ${pad(seconds % 60)}s`;
+}
+
+function syncCoordinates() {
+  const equatorial = coordinateMode === 'equatorial';
+  const [longitude, latitude] = stel.c2s(centerDirection(equatorial ? 'ICRF' : 'OBSERVED'));
+  $('#coordinate-longitude-label').textContent = equatorial ? '적경 RA' : '방위각 Az';
+  $('#coordinate-latitude-label').textContent = equatorial ? '적위 Dec' : '고도 Alt';
+  $('#coordinate-longitude').textContent = equatorial ? formatRightAscension(longitude) : `${(stel.anp(longitude) / rad).toFixed(3)}°`;
+  $('#coordinate-latitude').textContent = `${latitude < 0 ? '−' : '+'}${Math.abs(latitude / rad).toFixed(3)}°`;
+  $('#coordinate-reference').textContent = equatorial ? '화면 중심 · ICRF' : '화면 중심 · 지평 좌표';
+}
+
+async function setCoordinateMode(mode, { updateGrid = true } = {}) {
+  if (coordinateTransition || !['horizon', 'equatorial'].includes(mode) || (viewMode === 'allsky' && mode !== 'equatorial')) return;
+  coordinateTransition = true;
+  syncViewControls();
+  try {
+    const changeId = ++coordinateChangeId;
+    const direction = centerDirection('ICRF');
+    // Stop a previous object-tracking animation before changing the mount axes.
+    stel.core.lock = null;
+    stel.lookAt(centerDirection('MOUNT'), 0);
+    coordinateMode = mode;
+    const equatorial = mode === 'equatorial';
+    stel.core.mount_frame = equatorial ? stel.FRAME_ICRF : stel.FRAME_OBSERVED;
+    $('#coordinate-system').value = mode;
+    $('#equatorial-target').hidden = !equatorial;
+    $('#center-marker').hidden = !equatorial;
+    $('#toggle-coordinates').setAttribute('aria-pressed', String(equatorial));
+    $('#toggle-coordinates').setAttribute('aria-label', equatorial ? '지평 좌표계로 전환' : '천구 좌표계로 전환');
+    $('#coordinate-hint').textContent = equatorial
+      ? '적경·적위 격자와 입력 좌표는 ICRF 기준입니다. 지평선 아래는 지표면을 끄고 보세요.'
+      : '관측 위치의 지평선을 기준으로 방위각과 고도를 표시합니다.';
+    if (updateGrid) {
+      $('#layer-equatorial').checked = equatorial;
+      $('#layer-azimuthal').checked = !equatorial;
+      layer('equatorial', equatorial);
+      layer('azimuthal', !equatorial);
+    }
+    // The engine refreshes its mount transform during the animation frame.
+    // Keep the same celestial point centered after that transform is available.
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    if (changeId !== coordinateChangeId) return;
+    stel.lookAt(stel.convertFrame(stel.observer, 'ICRF', 'MOUNT', direction), 0);
+    await new Promise(requestAnimationFrame);
+    syncCoordinates();
+  } finally {
+    coordinateTransition = false;
+    syncViewControls();
+  }
+}
+
+function syncViewControls() {
+  const allsky = viewMode === 'allsky';
+  const busy = !ready || coordinateTransition || viewTransition;
+  document.body.classList.toggle('allsky-view', allsky);
+  $('#app-controls').disabled = busy;
+  $('#sky-canvas').inert = busy;
+  for (const button of document.querySelectorAll('.view-controls button, [data-view], #map-full-view')) button.disabled = busy;
+  for (const button of document.querySelectorAll('[data-view]')) button.setAttribute('aria-pressed', String(button.dataset.view === viewMode));
+  $('#toggle-allsky').setAttribute('aria-pressed', String(allsky));
+  $('#toggle-allsky').setAttribute('aria-label', allsky ? '하늘 보기로 돌아가기' : '전천 지도로 전환');
+  $('#toggle-coordinates').disabled = busy || allsky;
+  $('#toggle-ground').disabled = busy || allsky;
+  $('#coordinate-system').disabled = allsky;
+  $('#layer-landscape').disabled = allsky;
+  $('#layer-atmosphere').disabled = allsky;
+  $('#map-banner').hidden = !allsky;
+  $('#reset-view').title = allsky ? '전천 지도 전체 보기' : '시야 초기화';
+  $('#sky-hint').textContent = allsky ? '드래그로 지도 이동 · 스크롤로 확대 / 축소' : '드래그로 하늘 이동 · 스크롤로 확대 / 축소';
+  if (allsky) $('#coordinate-hint').textContent = '360° 천구를 펼친 지도입니다. 적경·적위는 ICRF 기준이며, 지형과 대기는 숨깁니다.';
+  fitSkyCanvas();
+}
+
+function fitSkyCanvas() {
+  const canvas = $('#sky-canvas');
+  const marker = $('#center-marker');
+  if (viewMode !== 'allsky') {
+    for (const property of ['left', 'top', 'right', 'bottom', 'width', 'height']) canvas.style.removeProperty(property);
+    marker.style.removeProperty('left');
+    marker.style.removeProperty('top');
+    return;
+  }
+  const panelOpen = !document.body.classList.contains('panel-closed') && innerWidth > 760;
+  const left = panelOpen ? $('#control-panel').getBoundingClientRect().right + 24 : 16;
+  $('#map-banner').style.left = `${left}px`;
+  const right = innerWidth < 760 ? 64 : 96;
+  const top = $('.topbar').getBoundingClientRect().bottom + 96;
+  const bottom = innerHeight - $('.observation-status').getBoundingClientRect().top + 24;
+  const availableWidth = Math.max(80, innerWidth - left - right);
+  const availableHeight = Math.max(40, innerHeight - top - bottom);
+  // Mollweide's full-sky ellipse is 2:1. Fit it without cropping either pole.
+  const width = Math.min(availableWidth, availableHeight * 2);
+  const height = width / 2;
+  const x = left + (availableWidth - width) / 2;
+  const y = top + (availableHeight - height) / 2;
+  Object.assign(canvas.style, { left: `${x}px`, top: `${y}px`, right: 'auto', bottom: 'auto', width: `${width}px`, height: `${height}px` });
+  marker.style.left = `${x + width / 2}px`;
+  marker.style.top = `${y + height / 2}px`;
+}
+
+async function setViewMode(mode) {
+  if (viewTransition || coordinateTransition || !['sky', 'allsky'].includes(mode) || mode === viewMode) return;
+  viewTransition = true;
+  syncViewControls();
+  try {
+    if (mode === 'allsky') {
+      savedSkyView = {
+        coordinateMode, direction: centerDirection('ICRF'), fov: stel.core.fov, projection: stel.core.projection, cardinals: stel.core.cardinals.visible,
+        layers: Object.fromEntries([...document.querySelectorAll('[data-layer]')].map((input) => [input.dataset.layer, input.checked])),
+      };
+      await setCoordinateMode('equatorial');
+      viewMode = 'allsky';
+      stel.core.projection = MOLLWEIDE_PROJECTION;
+      stel.core.cardinals.visible = false;
+      for (const name of ['landscape', 'atmosphere', 'azimuthal']) {
+        $(`[data-layer="${name}"]`).checked = false;
+        layer(name, false);
+      }
+      syncViewControls();
+      resetView();
+      if (innerWidth < 760) setPanel(false);
+    } else {
+      viewMode = 'sky';
+      setFovImmediately(Math.min(savedSkyView.fov, 150 * rad));
+      stel.core.projection = savedSkyView.projection;
+      stel.core.cardinals.visible = savedSkyView.cardinals;
+      await setCoordinateMode(savedSkyView.coordinateMode, { updateGrid: false });
+      for (const [name, enabled] of Object.entries(savedSkyView.layers)) {
+        $(`[data-layer="${name}"]`).checked = enabled;
+        layer(name, enabled);
+      }
+      stel.lookAt(stel.convertFrame(stel.observer, 'ICRF', 'MOUNT', savedSkyView.direction), 0);
+      setFovImmediately(Math.min(savedSkyView.fov, 150 * rad));
+    }
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    syncTime();
+  } finally {
+    viewTransition = false;
+    syncViewControls();
+  }
+}
+
+function goToEquatorialCoordinates(event) {
+  event.preventDefault();
+  const ra = $('#target-ra').valueAsNumber;
+  const dec = $('#target-dec').valueAsNumber;
+  if (!Number.isFinite(ra) || ra < 0 || ra > 24 || !Number.isFinite(dec) || Math.abs(dec) > 90) {
+    toast('적경은 0~24시간, 적위는 −90~+90°로 입력하세요.');
+    return;
+  }
+  const direction = stel.s2c((ra % 24) * 15 * rad, dec * rad);
+  stel.core.selection = null;
+  stel.core.lock = null;
+  // lookAt's direction follows the active mount, including equatorial mode.
+  stel.lookAt(stel.convertFrame(stel.observer, 'ICRF', 'MOUNT', direction), 0.5);
+  renderSelection();
+  toast(`적경 ${ra % 24}h · 적위 ${dec}°로 이동합니다.`);
 }
 
 function setSpeed(speed) {
@@ -185,15 +370,20 @@ function stepTimeSpeed(direction) {
 }
 
 function resetView() {
+  ++coordinateChangeId;
   stel.core.selection = null;
   stel.core.lock = null;
-  stel.observer.yaw = 0;
-  stel.observer.pitch = 15 * rad;
-  stel.zoomTo(100 * rad, 0.5);
+  const direction = coordinateMode === 'equatorial'
+    ? stel.convertFrame(stel.observer, 'ICRF', 'MOUNT', stel.s2c(0, 0))
+    : stel.s2c(0, 15 * rad);
+  stel.lookAt(direction, 0);
+  if (viewMode === 'allsky') setFovImmediately(360 * rad);
+  else stel.zoomTo(100 * rad, 0.5);
   renderSelection();
 }
 
 function layer(name, enabled) {
+  if (viewMode === 'allsky' && ['landscape', 'atmosphere'].includes(name)) enabled = false;
   const c = stel.core;
   switch (name) {
     case 'constellations': c.constellations.lines_visible = enabled; break;
@@ -205,6 +395,7 @@ function layer(name, enabled) {
       syncGroundControls();
       break;
     case 'equatorial': c.lines.equatorial.visible = enabled; break;
+    case 'azimuthal': c.lines.azimuthal.visible = enabled; break;
     case 'dss':
       if (enabled && !dssAdded) {
         c.dss.addDataSource({ url: 'https://irsa.ipac.caltech.edu/data/hips/CDS/DSS2/color' });
@@ -227,6 +418,7 @@ function syncGroundControls() {
 
 function toggleGround() {
   if (!ready) return;
+  if (viewMode === 'allsky') return toast('전천 지도에서는 지표면을 숨깁니다. 하늘 보기로 돌아가면 복원됩니다.');
   const enabled = !stel.core.landscapes.visible;
   layer('landscape', enabled);
   toast(enabled ? '지표면을 켰습니다.' : '지표면을 껐습니다. 지평선 아래의 하늘도 볼 수 있습니다.');
@@ -264,7 +456,7 @@ function selectObject(item) {
   $('#search-results').replaceChildren();
   renderSelection();
   if (window.innerWidth < 720) setPanel(false);
-  toast(`${item.name ?? item.id}(으)로 이동했습니다. 지평선 아래 천체는 지형을 끄면 볼 수 있습니다.`);
+  toast(viewMode === 'allsky' ? `${item.name ?? item.id}(으)로 확대했습니다. ‘전체 보기’를 누르면 전천 지도로 돌아갑니다.` : `${item.name ?? item.id}(으)로 이동했습니다. 지평선 아래 천체는 지형을 끄면 볼 수 있습니다.`);
 }
 
 function search(query) {
@@ -299,9 +491,10 @@ function setPanel(open) {
   document.body.classList.toggle('panel-closed', !open);
   $('#toggle-panel').setAttribute('aria-expanded', String(open));
   $('#control-panel').inert = !open;
+  fitSkyCanvas();
 }
 
-function applySharedView() {
+async function applySharedView() {
   const params = new URL(location.href).searchParams;
   const lat = Number(params.get('lat'));
   const lon = Number(params.get('lon'));
@@ -318,8 +511,10 @@ function applySharedView() {
   }
   const time = new Date(params.get('time') ?? '');
   if (Number.isFinite(time.getTime()) && time.getFullYear() >= 1900 && time.getFullYear() <= 2100) stel.observer.utc = stel.date2MJD(time.getTime());
+  if (params.get('view') === 'allsky') await setViewMode('allsky');
+  else if (params.get('frame') === 'equatorial') await setCoordinateMode('equatorial');
   for (const [key, min, max, apply] of [
-    ['fov', 0.2, 150, (value) => { stel.core.fov = value * rad; }],
+    ['fov', 0.2, viewMode === 'allsky' ? 360 : 150, (value) => { setFovImmediately(value * rad); }],
     ['yaw', -360, 360, (value) => { stel.observer.yaw = value * rad; }],
     ['pitch', -90, 90, (value) => { stel.observer.pitch = value * rad; }],
   ]) {
@@ -336,6 +531,13 @@ function applySharedView() {
 }
 
 function setupControls() {
+  for (const button of document.querySelectorAll('[data-view]')) button.addEventListener('click', () => setViewMode(button.dataset.view));
+  $('#toggle-allsky').addEventListener('click', () => setViewMode(viewMode === 'allsky' ? 'sky' : 'allsky'));
+  $('#map-full-view').addEventListener('click', resetView);
+  window.addEventListener('resize', fitSkyCanvas);
+  $('#coordinate-system').addEventListener('change', (event) => setCoordinateMode(event.target.value));
+  $('#toggle-coordinates').addEventListener('click', () => setCoordinateMode(coordinateMode === 'equatorial' ? 'horizon' : 'equatorial'));
+  $('#equatorial-target').addEventListener('submit', goToEquatorialCoordinates);
   $('#search-input').addEventListener('input', (event) => search(event.target.value));
   $('#search-input').addEventListener('keydown', (event) => {
     if (event.key === 'Escape') $('#search-results').replaceChildren();
@@ -419,16 +621,19 @@ function setupControls() {
   });
   $('#quality-select').addEventListener('change', (event) => { stel.maxPixelRatio = { performance: 1, balanced: 1.5, detail: 2 }[event.target.value]; });
   $('#zoom-in').addEventListener('click', () => stel.zoomTo(Math.max(0.2 * rad, stel.core.fov * 0.7), 0.3));
-  $('#zoom-out').addEventListener('click', () => stel.zoomTo(Math.min(150 * rad, stel.core.fov / 0.7), 0.3));
+  $('#zoom-out').addEventListener('click', () => stel.zoomTo(Math.min((viewMode === 'allsky' ? 360 : 150) * rad, stel.core.fov / 0.7), 0.3));
   $('#reset-view').addEventListener('click', resetView);
   $('#clear-selection').addEventListener('click', () => { stel.core.selection = null; stel.core.lock = null; renderSelection(); });
   $('#copy-link').addEventListener('click', async () => {
     const url = new URL(base);
+    const yawDegrees = ((stel.observer.yaw / rad + 180) % 360 + 360) % 360 - 180;
     url.search = new URLSearchParams({
       lat: currentLocation.latitude.toFixed(5), lon: currentLocation.longitude.toFixed(5),
       place: currentLocation.id ?? 'custom',
+      frame: coordinateMode,
+      view: viewMode,
       time: stel.MJD2date(stel.observer.utc).toISOString(),
-      fov: (stel.core.fov / rad).toFixed(3), yaw: (stel.observer.yaw / rad).toFixed(3), pitch: (stel.observer.pitch / rad).toFixed(3),
+      fov: (stel.core.fov / rad).toFixed(3), yaw: yawDegrees.toFixed(3), pitch: (stel.observer.pitch / rad).toFixed(3),
       layers: [...document.querySelectorAll('[data-layer]:checked')].map((input) => input.dataset.layer).join(','),
     }).toString();
     try { await navigator.clipboard.writeText(url.href); toast('같은 위치·시간·시야를 여는 링크를 복사했습니다.'); }
@@ -456,9 +661,10 @@ async function onReady(engine) {
     stel.observer.utc = stel.date2MJD(Date.now());
     setSpeed(1);
     resetView();
-    applySharedView();
-    // Every new visit starts with ground on, including shared links.
-    $('#layer-landscape').checked = true;
+    await applySharedView();
+    // Ordinary sky visits start with ground on; an explicit all-sky link has no horizon.
+    $('#layer-landscape').checked = viewMode !== 'allsky';
+    if (viewMode === 'allsky') $('#layer-atmosphere').checked = false;
     for (const input of document.querySelectorAll('[data-layer]')) layer(input.dataset.layer, input.checked);
     setupControls();
     const fonts = await Promise.allSettled([
@@ -468,8 +674,7 @@ async function onReady(engine) {
     if (fonts.some((result) => result.status === 'rejected')) console.warn('외부 폰트를 불러오지 못해 엔진의 기본 폰트를 사용합니다.');
     clearTimeout(startupTimer);
     ready = true;
-    for (const button of document.querySelectorAll('.view-controls button')) button.disabled = false;
-    $('#app-controls').disabled = false;
+    syncViewControls();
     $('#loading-overlay').hidden = true;
     $('#engine-status').textContent = '하늘 탐색 중';
     $('#engine-status').dataset.state = 'ready';

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0b141d" />
     <meta name="description" content="브라우저에서 별과 행성을 탐색하는 Stellarium Web Lab. 관측 위치와 시간을 바꾸고 나만의 하늘을 살펴보세요." />
-    <title>Stellarium Web Lab · v1.1.0</title>
+    <title>Stellarium Web Lab · v1.2.0</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b141d'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%2382dfe6' stroke-width='2'/%3E%3Cellipse cx='16' cy='16' rx='14' ry='5' transform='rotate(-37 16 16)' fill='none' stroke='%2382dfe6'/%3E%3C/svg%3E" />
     <link rel="stylesheet" href="./src/styles.css" />
     <script type="module" src="./src/app.js"></script>
@@ -21,6 +21,8 @@
       <symbol id="icon-minus" viewBox="0 0 24 24"><path d="M5 12h14" /></symbol>
       <symbol id="icon-reset" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" /><path d="M12 2v4m0 12v4M2 12h4m12 0h4" /></symbol>
       <symbol id="icon-ground" viewBox="0 0 24 24"><path d="m2 17 6-9 4 6 3-4 7 7M2 20h20M6 11l2 2 2-2" /></symbol>
+      <symbol id="icon-coordinates" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><ellipse cx="12" cy="12" rx="4" ry="9" /><path d="M3 12h18M5 6.5c4 2 10 2 14 0M5 17.5c4-2 10-2 14 0" /></symbol>
+      <symbol id="icon-allsky" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="10" ry="5" /><ellipse cx="12" cy="12" rx="4" ry="5" /><path d="M2 12h20M12 7v10" /></symbol>
       <symbol id="icon-link" viewBox="0 0 24 24"><path d="m10 13 4-4m-6 6-1 1a3.5 3.5 0 0 1-5-5l4-4a3.5 3.5 0 0 1 5 0m2 10a3.5 3.5 0 0 0 5 0l4-4a3.5 3.5 0 0 0-5-5l-1 1" transform="translate(1 0) scale(.92)" /></symbol>
       <symbol id="icon-pin" viewBox="0 0 24 24"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" /><circle cx="12" cy="10" r="2" /></symbol>
       <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 6v6l4 2" /></symbol>
@@ -29,6 +31,11 @@
 
     <main id="observatory" aria-label="Stellarium 웹 천체 관측 화면">
       <canvas id="sky-canvas" aria-label="천체 지도. 드래그하여 방향을 바꾸고 스크롤하여 확대할 수 있습니다." tabindex="0"></canvas>
+      <div id="center-marker" class="center-marker" aria-hidden="true" hidden></div>
+      <aside id="map-banner" class="map-banner" aria-label="전천 지도 정보" hidden>
+        <div><p class="eyebrow">ALL-SKY MAP</p><h2>360° 전천 지도 <span id="map-fov">360.0°</span></h2><p class="map-source">Stellarium 별지도 · SPHEREx 데이터 미연동</p></div>
+        <button id="map-full-view" class="button button-secondary" type="button" disabled>전체 보기</button>
+      </aside>
 
       <header class="topbar">
         <div class="brand-group">
@@ -39,7 +46,7 @@
             <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="10" /><ellipse cx="20" cy="20" rx="18" ry="7" transform="rotate(-37 20 20)" /><path d="M20 6v4m0 20v4M6 20h4m20 0h4" /><circle class="orbital-point" cx="33.3" cy="9.9" r="2.4" /></svg>
             <span class="brand-name">STELLARIUM <span class="brand-divider">/</span><span class="brand-subtitle">WEB LAB</span></span>
           </a>
-          <span class="version-tag">v1.1.0</span>
+          <span class="version-tag">v1.2.0</span>
         </div>
         <div class="topbar-actions">
           <span id="engine-status" class="engine-status" role="status" aria-live="polite">엔진 준비 중</span>
@@ -69,6 +76,10 @@
 
         <fieldset id="app-controls" disabled>
           <legend class="sr-only">관측 설정</legend>
+          <div class="view-mode-switch" role="group" aria-label="보기 방식">
+            <button class="button" type="button" data-view="sky" aria-pressed="true">하늘 보기</button>
+            <button class="button" type="button" data-view="allsky" aria-pressed="false">전천 지도</button>
+          </div>
           <section class="control-section search-section" aria-labelledby="search-title">
             <h2 id="search-title" class="section-heading"><span>천체 찾기</span><span class="section-index">01</span></h2>
             <form id="search-form" class="search-form" role="search">
@@ -79,8 +90,29 @@
             <ul id="search-results" class="search-results" aria-label="천체 검색 결과" aria-live="polite"></ul>
           </section>
 
+          <section class="control-section" aria-labelledby="coordinates-title">
+            <h2 id="coordinates-title" class="section-heading"><span><svg class="icon section-icon"><use href="#icon-coordinates" /></svg>좌표계</span><span class="section-index">02</span></h2>
+            <label for="coordinate-system" class="sr-only">하늘을 보는 좌표계</label>
+            <select id="coordinate-system" aria-describedby="coordinate-hint">
+              <option value="horizon">지평 좌표계 · 방위각/고도</option>
+              <option value="equatorial">천구 좌표계 · 적경/적위</option>
+            </select>
+            <div class="coordinate-readout">
+              <p id="coordinate-reference">화면 중심 · 지평 좌표</p>
+              <dl><div><dt id="coordinate-longitude-label">방위각 Az</dt><dd id="coordinate-longitude">—</dd></div><div><dt id="coordinate-latitude-label">고도 Alt</dt><dd id="coordinate-latitude">—</dd></div></dl>
+            </div>
+            <p id="coordinate-hint" class="field-note">관측 위치의 지평선을 기준으로 방위각과 고도를 표시합니다.</p>
+            <form id="equatorial-target" class="equatorial-target" hidden>
+              <div class="coordinate-inputs">
+                <label class="field-label" for="target-ra">적경 RA <span>시간 h</span><input id="target-ra" type="number" min="0" max="24" step="any" placeholder="0~24" required inputmode="decimal" /></label>
+                <label class="field-label" for="target-dec">적위 Dec <span>도 °</span><input id="target-dec" type="number" min="-90" max="90" step="any" placeholder="−90~+90" required inputmode="decimal" /></label>
+              </div>
+              <button id="go-to-coordinates" class="button button-secondary" type="submit">입력 좌표로 이동</button>
+            </form>
+          </section>
+
           <section class="control-section" aria-labelledby="location-title">
-            <h2 id="location-title" class="section-heading"><span><svg class="icon section-icon"><use href="#icon-pin" /></svg>관측 위치</span><span class="section-index">02</span></h2>
+            <h2 id="location-title" class="section-heading"><span><svg class="icon section-icon"><use href="#icon-pin" /></svg>관측 위치</span><span class="section-index">03</span></h2>
             <form id="location-form">
               <label for="location-search" class="sr-only">국가 또는 수도 검색</label>
               <input id="location-search" class="location-search" type="search" placeholder="국가 또는 수도 검색…" autocomplete="off" aria-controls="location-preset" />
@@ -102,7 +134,7 @@
           </section>
 
           <section class="control-section" aria-labelledby="time-title">
-            <h2 id="time-title" class="section-heading"><span><svg class="icon section-icon"><use href="#icon-clock" /></svg>관측 시간</span><span class="section-index">03</span></h2>
+            <h2 id="time-title" class="section-heading"><span><svg class="icon section-icon"><use href="#icon-clock" /></svg>관측 시간</span><span class="section-index">04</span></h2>
             <form id="time-form" class="time-form">
               <label for="observation-time" class="sr-only">관측 날짜와 시간</label>
               <input id="observation-time" type="datetime-local" required />
@@ -128,13 +160,14 @@
           </section>
 
           <section class="control-section" aria-labelledby="layers-title">
-            <h2 id="layers-title" class="section-heading"><span><svg class="icon section-icon"><use href="#icon-layers" /></svg>하늘 레이어</span><span class="section-index">04</span></h2>
+            <h2 id="layers-title" class="section-heading"><span><svg class="icon section-icon"><use href="#icon-layers" /></svg>하늘 레이어</span><span class="section-index">05</span></h2>
             <div class="layer-grid">
               <label class="layer-toggle" for="layer-constellations"><input id="layer-constellations" type="checkbox" data-layer="constellations" checked /><span class="toggle-track" aria-hidden="true"></span><span>별자리 선</span></label>
               <label class="layer-toggle" for="layer-labels"><input id="layer-labels" type="checkbox" data-layer="labels" checked /><span class="toggle-track" aria-hidden="true"></span><span>별자리 이름</span></label>
               <label class="layer-toggle" for="layer-atmosphere"><input id="layer-atmosphere" type="checkbox" data-layer="atmosphere" /><span class="toggle-track" aria-hidden="true"></span><span>대기</span></label>
               <label class="layer-toggle" for="layer-landscape"><input id="layer-landscape" type="checkbox" data-layer="landscape" checked /><span class="toggle-track" aria-hidden="true"></span><span>지표면 <kbd>G</kbd></span></label>
-              <label class="layer-toggle" for="layer-equatorial"><input id="layer-equatorial" type="checkbox" data-layer="equatorial" /><span class="toggle-track" aria-hidden="true"></span><span>적도 좌표망</span></label>
+              <label class="layer-toggle" for="layer-equatorial"><input id="layer-equatorial" type="checkbox" data-layer="equatorial" /><span class="toggle-track" aria-hidden="true"></span><span>천구 격자</span></label>
+              <label class="layer-toggle" for="layer-azimuthal"><input id="layer-azimuthal" type="checkbox" data-layer="azimuthal" /><span class="toggle-track" aria-hidden="true"></span><span>지평 격자</span></label>
               <label class="layer-toggle" for="layer-dss"><input id="layer-dss" type="checkbox" data-layer="dss" /><span class="toggle-track" aria-hidden="true"></span><span>DSS 영상</span></label>
             </div>
           </section>
@@ -154,7 +187,11 @@
         <div id="selection-details" class="selection-details"></div>
       </aside>
 
-      <div class="view-controls floating-panel" aria-label="천체 지도 확대 및 지표면">
+      <div class="view-controls floating-panel" aria-label="천체 지도 좌표계, 확대 및 지표면">
+        <button id="toggle-allsky" class="icon-button ground-toggle" type="button" aria-label="전천 지도로 전환" aria-pressed="false" title="하늘 보기 / 전천 지도 전환" disabled><svg class="icon" aria-hidden="true"><use href="#icon-allsky" /></svg><span>전천</span></button>
+        <span class="view-control-rule" aria-hidden="true"></span>
+        <button id="toggle-coordinates" class="icon-button ground-toggle" type="button" aria-label="천구 좌표계로 전환" aria-pressed="false" title="지평 / 천구 좌표계 전환" disabled><svg class="icon" aria-hidden="true"><use href="#icon-coordinates" /></svg><span>천구</span></button>
+        <span class="view-control-rule" aria-hidden="true"></span>
         <button id="toggle-ground" class="icon-button ground-toggle" type="button" aria-label="지표면 끄기 (G)" aria-pressed="true" aria-keyshortcuts="G" title="지표면 끄기 (G)" disabled><svg class="icon" aria-hidden="true"><use href="#icon-ground" /></svg><span>지표면</span></button>
         <span class="view-control-rule" aria-hidden="true"></span>
         <button id="zoom-in" class="icon-button" type="button" aria-label="확대" title="확대"><svg class="icon"><use href="#icon-plus" /></svg></button>
@@ -164,7 +201,7 @@
         <button id="reset-view" class="icon-button" type="button" aria-label="기본 시야로 돌아가기" title="시야 초기화"><svg class="icon"><use href="#icon-reset" /></svg></button>
       </div>
 
-      <div class="sky-hint" aria-hidden="true"><span>드래그</span> 하늘 이동<i></i><span>스크롤</span> 확대 / 축소</div>
+      <div id="sky-hint" class="sky-hint" aria-hidden="true">드래그로 하늘 이동 · 스크롤로 확대 / 축소</div>
       <footer class="observation-status" aria-label="현재 관측 상태">
         <div class="status-location"><svg class="icon"><use href="#icon-pin" /></svg><span id="location-status">서울 · 37.5665° N, 126.9780° E</span></div>
         <div class="status-time"><svg class="icon"><use href="#icon-clock" /></svg><time id="time-status">관측 시간 준비 중</time></div>
@@ -176,10 +213,12 @@
     <dialog id="help-dialog" class="help-dialog" aria-labelledby="help-title">
       <div class="dialog-heading"><div><p class="eyebrow">WELCOME TO THE SKY</p><h2 id="help-title">Stellarium Web Lab</h2></div><button id="close-help" class="icon-button" type="button" aria-label="도움말 닫기"><svg class="icon"><use href="#icon-close" /></svg></button></div>
       <p class="dialog-intro">웹 브라우저에서 실행되는 나만의 천체 관측 도구입니다.</p>
+      <p class="dialog-intro">‘전천 지도’는 360° 하늘을 타원형 몰바이데 투영으로 펼칩니다. 드래그·확대와 천체 검색을 사용할 수 있고, ‘전체 보기’로 지도를 초기화합니다. 하늘 보기로 돌아오면 이전 시야와 지표면·대기 설정이 복원됩니다. 현재 지도는 Stellarium 자료이며 SPHEREx 관측 영상·파장별 데이터는 아직 연결되지 않았습니다.</p>
+      <p class="dialog-intro">‘좌표계’에서 천구 좌표계를 선택하거나 오른쪽 ‘천구’ 버튼을 누르면 적경·적위 격자로 볼 수 있습니다. 화면 중심 좌표를 확인하고, 적경(시간)·적위(도)를 입력해 이동하세요. 격자와 좌표 값은 ICRF 기준입니다.</p>
       <dl class="help-shortcuts"><div><dt>하늘 이동</dt><dd>화면을 드래그하거나 터치해 이동</dd></div><div><dt>확대 · 축소</dt><dd>마우스 휠, 두 손가락 제스처 또는 + / − 버튼</dd></div><div><dt>지표면</dt><dd>오른쪽 지표면 버튼 또는 G 키로 켜기 · 끄기</dd></div><div><dt>천체 선택</dt><dd>하늘의 천체를 클릭하거나 이름으로 검색</dd></div><div><dt>관측 조건</dt><dd>탐색 도구에서 위치·시간·레이어 조절</dd></div></dl>
       <div class="help-note"><h3>이 버전에 대하여</h3><p>공식 Stellarium Web Engine을 사용하는 웹 프로젝트입니다. 데스크톱 Stellarium의 모든 기능을 포함하지 않으며, SPHEREx 데이터 연동은 이후 개발 단계입니다.</p></div>
       <div class="help-links"><a href="./source/" target="_blank" rel="noopener">소스 코드 ↗</a><a href="./LICENSE-AGPL-3.0.txt" target="_blank" rel="noopener">AGPL-3.0 라이선스 ↗</a><a href="https://github.com/Stellarium/stellarium-web-engine" target="_blank" rel="noopener">공식 웹 엔진 ↗</a></div>
-      <p class="help-version">STELLARIUM WEB LAB <span>v1.1.0</span></p>
+      <p class="help-version">STELLARIUM WEB LAB <span>v1.2.0</span></p>
     </dialog>
   </body>
 </html>

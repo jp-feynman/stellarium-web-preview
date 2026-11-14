@@ -117,7 +117,7 @@ $buildInfo = [ordered]@{
     scons = '4.8.1'
     node = '24.19.0'
     build = 'python -m SCons -j4 mode=release build/stellarium-web-engine.js'
-    patches = @('SConstruct: Windows drivers and response-file linking', 'tools/make-assets.py: Windows paths, Python invocation and CRLF normalization', 'src/js/canvas.js: physical-pixel resize comparison and maxPixelRatio', 'src/js/pre.js: high-performance WebGL preference')
+    patches = @('SConstruct: Windows drivers and response-file linking', 'tools/make-assets.py: Windows paths, Python invocation and CRLF normalization', 'src/js/canvas.js: physical-pixel resize comparison and maxPixelRatio', 'src/js/pre.js: high-performance WebGL preference', 'src/modules/lines.c: bounded grid-label intersection at projection seams')
     artifacts = $artifactInfo
 }
 [IO.File]::WriteAllText((Join-Path $engineOutput 'build-info.json'), ($buildInfo | ConvertTo-Json -Depth 5), [Text.UTF8Encoding]::new($false))

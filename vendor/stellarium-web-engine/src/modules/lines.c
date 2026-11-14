@@ -271,7 +271,7 @@ static int line_update(obj_t *obj, double dt)
 static bool get_line_screen_intersection(
         const painter_t *painter, int frame, const double line[2][4],
         const uv_map_t *map, double out_pos[2], double out_dir[2],
-        double border_dir[2])
+        double border_dir[2], int depth)
 {
     double p[4], win[2][3];
     int i;
@@ -279,10 +279,15 @@ static bool get_line_screen_intersection(
     const double ws[2] = {painter->proj->window_size[0],
                           painter->proj->window_size[1]};
 
+    // A projection seam need not converge in screen space as the spherical
+    // segment shrinks. Skip its border label instead of recursing forever.
+    if (depth >= 32) return false;
+
     for (i = 0; i < 2; i++) {
         uv_map(map, line[i], p, NULL);
         convert_frame(painter->obs, frame, FRAME_VIEW, true, p, p);
         project_to_win(painter->proj, p, win[i]);
+        if (!isfinite(win[i][0]) || !isfinite(win[i][1])) return false;
     }
     if (    is_visible_win(win[0], painter->proj->window_size) ==
             is_visible_win(win[1], painter->proj->window_size))
@@ -308,16 +313,21 @@ static bool get_line_screen_intersection(
     }
 
     vec2_mix(line[0], line[1], 0.5, mid);
+    if ((mid[0] == line[0][0] && mid[1] == line[0][1]) ||
+        (mid[0] == line[1][0] && mid[1] == line[1][1]))
+        return false;
     vec2_copy(line[0], line2[0]);
     vec2_copy(mid, line2[1]);
     if (get_line_screen_intersection(
-                painter, frame, line2, map, out_pos, out_dir, border_dir))
+                painter, frame, line2, map, out_pos, out_dir, border_dir,
+                depth + 1))
         return true;
 
     vec2_copy(mid, line2[0]);
     vec2_copy(line[1], line2[1]);
     if (get_line_screen_intersection(
-                painter, frame, line2, map, out_pos, out_dir, border_dir))
+                painter, frame, line2, map, out_pos, out_dir, border_dir,
+                depth + 1))
         return true;
 
     LOG_D("FAIL");
@@ -519,7 +529,7 @@ static void render_recursion(
         paint_line(painter, line->frame, lines + dir * 2, &map, 8, 0);
         if (!line->format) continue;
         if (get_line_screen_intersection(
-                    painter, line->frame, lines + dir * 2, &map, p, u, v)) {
+                    painter, line->frame, lines + dir * 2, &map, p, u, v, 0)) {
             render_label(p, u, v, uv[0], 1 - dir, line,
                          splits[dir] * (dir + 1), painter);
         }
