@@ -1,0 +1,30 @@
+{
+  "upstream": "https://github.com/Stellarium/stellarium-web-engine",
+  "upstreamCommit": "2103935134e09ba1715171241769fce03cebebe4",
+  "license": "AGPL-3.0",
+  "emscripten": "1.39.17",
+  "emscriptenRelease": "9bc968c0e49b1c795ecddb87391b265911e2adcb",
+  "emsdkManagerCommit": "708dcbcc9ee23bc7d2dad44fc90db377e38b771c",
+  "python": "3.9.2",
+  "scons": "4.8.1",
+  "node": "24.19.0",
+  "build": "python -m SCons -j4 mode=release build/stellarium-web-engine.js",
+  "patches": [
+    "SConstruct: Windows drivers and response-file linking",
+    "tools/make-assets.py: Windows paths, Python invocation and CRLF normalization",
+    "src/js/canvas.js: physical-pixel resize comparison and maxPixelRatio",
+    "src/js/pre.js: high-performance WebGL preference"
+  ],
+  "artifacts": [
+    {
+      "file": "stellarium-web-engine.js",
+      "bytes": 104539,
+      "sha256": "6cc361b2800fdec4380225cbb2b9ed08923db75f1b07bdc7cae04d3d8e37890c"
+    },
+    {
+      "file": "stellarium-web-engine.wasm",
+      "bytes": 1199274,
+      "sha256": "ee6ced8bad1282278931b04784f4640de8509418a532f11c37269d8f432dd65a"
+    }
+  ]
+}
