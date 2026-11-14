@@ -8,6 +8,7 @@ import { useT } from '../i18n';
 import { drawFrame } from '../render2d';
 import { SEQUENCES, useApp, type OverlayToggles } from '../store';
 import { dateRange, waveRange } from './FrameBadge';
+import { revealFrameInStrip } from './filmstripScroll';
 
 function FrameThumb({ frame, stretch }: { frame: SkyFrame; stretch: Stretch }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -31,8 +32,9 @@ export function TransportBar() {
   const stripRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const el = stripRef.current?.querySelector<HTMLElement>(`[data-index="${i}"]`);
-    el?.scrollIntoView?.({ block: 'nearest', inline: 'nearest', behavior: reduced ? 'auto' : 'smooth' });
+    const strip = stripRef.current;
+    const el = strip?.querySelector<HTMLElement>(`[data-index="${i}"]`);
+    if (strip && el) revealFrameInStrip(strip, el, reduced);
   }, [i, reduced]);
 
   const disabled = frames.length < 2;
