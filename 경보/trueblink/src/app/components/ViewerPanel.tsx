@@ -71,7 +71,7 @@ export function ViewerPanel() {
                 <ViewerCanvas />
                 {nFrames === 0 && (
                   <div className="stage-empty">
-                    <p>{phase === 'idle' || phase === 'error' ? t('viewer.empty') : t('viewer.loading')}</p>
+                    <p>{t(phase === 'ready' ? 'viewer.noFrames' : phase === 'idle' || phase === 'error' ? 'viewer.empty' : 'viewer.loading')}</p>
                   </div>
                 )}
                 {nFrames > 0 && (

@@ -115,7 +115,9 @@ export const MAX_FOV_ARCSEC = 780;
 export const MIN_SPEED_MS = 350;
 export const MAX_SPEED_MS = 3000;
 
-/** Real pipeline: exposures loaded per field before "load more", parallel cutout loads, search timeout. */
+/** Start with a balanced preview; request further exposures only when the user asks. */
+export const INITIAL_EXPOSURES_PER_FIELD = 48;
+/** Further batch size (also the initial cap for locally bundled pixels), concurrency and search timeout. */
 export const MAX_EXPOSURES_PER_FIELD = 360;
 export const PARALLEL_CUTOUTS = 12;
 export const SEARCH_TIMEOUT_MS = 12000;

@@ -4,6 +4,12 @@
 import { angularSepArcsec } from '../../core/wcs';
 import { approxPixFromRegion, cubeChannelAt, waveAt, type WaveTable } from '../../core/wave';
 import { DETECTOR_BANDS, type BandGroup, type Exposure, type SkyFrame, type SkyPos, type Visit } from '../../core/types';
+import { INITIAL_EXPOSURES_PER_FIELD, MAX_EXPOSURES_PER_FIELD } from '../config';
+
+/** Bound the first archive download without slowing down already bundled challenge targets. */
+export function initialLoadBudget(total: number, bundled = 0): number {
+  return Math.min(total, Math.max(INITIAL_EXPOSURES_PER_FIELD, Math.min(bundled, MAX_EXPOSURES_PER_FIELD)));
+}
 
 /** Pixels closer than this to the detector edge are not worth a download (the cutout would be mostly empty). */
 export const EDGE_SKIP_PX = 6;

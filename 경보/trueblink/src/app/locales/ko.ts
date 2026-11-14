@@ -25,6 +25,7 @@ const ui: Record<string, string> = {
   'viewer.label': '깜빡이 뷰어. 한 점을 클릭하면 측정합니다.',
   'viewer.empty': '챌린지 대상을 고르거나 좌표를 입력해 시작하세요.',
   'viewer.loading': '영상을 불러오는 중…',
+  'viewer.noFrames': '이 선택에 표시할 영상이 없습니다. 파장 묶음이나 순서를 바꾸거나, 남은 노출이 있으면 더 불러오세요.',
   'viewer.north': '북',
   'viewer.east': '동',
   'viewer.nodata': '빗금 = 데이터 없음',

@@ -5,7 +5,7 @@ import { getPipeline } from '../seams';
 import { useApp } from '../store';
 import { openInput } from './TopBar';
 import { PRESETS } from '../presets';
-import { MAX_EXPOSURES_PER_FIELD } from '../config';
+import { INITIAL_EXPOSURES_PER_FIELD, MAX_EXPOSURES_PER_FIELD } from '../config';
 import { pixelSourceCounts, session, useSessionVersion } from '../session';
 
 /** "pixels from the baked bundle 358 · live from NASA's archive 12": where the loaded cutouts came from. */
@@ -54,15 +54,23 @@ export function StatusBar() {
   const frames = useApp((s) => s.frames.length);
   const visits = useApp((s) => s.visits.length);
   const exposures = useApp((s) => s.exposures.length);
+  const demo = useApp((s) => s.demo);
   const query = useApp((s) => s.query);
+  useSessionVersion();
+  const used = demo ? exposures : session.exposureFrames.size;
+  const remaining = status.remaining ?? 0;
+  const cancelled = status.message === 'cancelled';
+  const previewLoading = status.phase === 'loading' && status.total <= INITIAL_EXPOSURES_PER_FIELD && remaining > 0;
   const busy = status.phase === 'resolving' || status.phase === 'searching' || status.phase === 'loading';
   const pct = status.total > 0 ? Math.round((100 * status.loaded) / status.total) : 0;
 
   let text = '';
   if (status.phase === 'resolving') text = t('status.resolving', { name: status.message || query });
   else if (status.phase === 'searching') text = t('status.searching');
-  else if (status.phase === 'loading') text = t('status.loading', { loaded: status.loaded, total: status.total });
-  else if (status.phase === 'ready') text = t('status.ready', { frames, visits, exposures });
+  else if (status.phase === 'loading') text = t(previewLoading ? 'status.previewLoading' : 'status.loading', { loaded: status.loaded, total: status.total });
+  else if (status.phase === 'ready') text = demo
+    ? t('status.ready', { frames, visits, exposures })
+    : t(cancelled ? 'status.stopped' : remaining > 0 ? 'status.previewReady' : 'status.dataReady', { frames, used, exposures });
   else if (status.phase === 'idle') text = status.message === 'cancelled' ? t('status.cancelled') : t('status.idle');
 
   if (status.phase === 'error') {
@@ -93,6 +101,9 @@ export function StatusBar() {
     <div className={`statusbar${busy ? ' busy' : ''}`} role="status" aria-live="polite" data-testid="status" data-phase={status.phase}>
       <span className="status-msg">{text}</span>
       {(status.phase === 'loading' || status.phase === 'ready') && <PixelSources />}
+      {status.phase === 'ready' && remaining > 0 && !cancelled && (
+        <span className="status-hint" data-testid="partial-data">{t('status.partialData')}</span>
+      )}
       {status.phase === 'loading' && (
         <span className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
           <span style={{ width: `${pct}%` }} />
@@ -103,14 +114,19 @@ export function StatusBar() {
           {t('status.cancel')}
         </button>
       )}
-      {!busy && (status.remaining ?? 0) > 0 && (
+      {!busy && cancelled && query && (
+        <button type="button" className="btn small" onClick={() => (getPipeline() as (ReturnType<typeof getPipeline> & MaybeLoadMore) | null)?.reopen?.()}>
+          {t('status.retry')}
+        </button>
+      )}
+      {!busy && remaining > 0 && !cancelled && (
         <button
           type="button"
           className="btn small"
           data-testid="load-more"
           onClick={() => (getPipeline() as (ReturnType<typeof getPipeline> & MaybeLoadMore) | null)?.loadMore?.()}
         >
-          {t('pipeline.loadMore', { n: Math.min(MAX_EXPOSURES_PER_FIELD, status.remaining ?? 0) })}
+          {t(remaining <= MAX_EXPOSURES_PER_FIELD ? 'pipeline.loadRemaining' : 'pipeline.loadMore', { n: Math.min(MAX_EXPOSURES_PER_FIELD, remaining) })}
         </button>
       )}
     </div>

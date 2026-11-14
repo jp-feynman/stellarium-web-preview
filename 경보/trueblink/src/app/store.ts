@@ -25,7 +25,7 @@ export interface Status {
   message?: string;
   loaded: number;
   total: number;
-  /** Exposures that cover the field but were left out by the per-field cap ("load more"). */
+  /** Usable exposures not requested in the preview/current batch ("load more"). */
   remaining?: number;
 }
 

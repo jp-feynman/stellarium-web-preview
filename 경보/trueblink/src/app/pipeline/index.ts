@@ -37,6 +37,7 @@ import {
   chooseBalancedVisits,
   groupMidWavelength,
   inBandGroup,
+  initialLoadBudget,
   mjdNow,
   nearbyMovedPreset,
   orderForLoading,
@@ -84,7 +85,6 @@ interface Run {
   lastError?: string;
   channelOf: Map<string, number>;
   workers: number;
-  firstPassDone: boolean;
   rebuildTimer?: ReturnType<typeof setTimeout>;
   lastRebuild: number;
   /** Main-thread ms of the last progressive rebuild. */
@@ -228,7 +228,7 @@ export class RealPipeline implements AppPipeline {
     publishTiming(timing);
     const stale = () => session.id !== sid || signal.aborted;
     // Placeholder run so cancel() works during resolving and searching.
-    this.run = { sid, ctrl, center: { ra: 0, dec: 0 }, grid: { ra0: 0, dec0: 0, n: 3, scaleArcsec: 1 }, fov: st.fovArcsec, pending: [], budget: 0, started: 0, done: 0, failed: 0, channelOf: new Map(), workers: 0, firstPassDone: false, lastRebuild: 0, rebuildCost: 0, timing };
+    this.run = { sid, ctrl, center: { ra: 0, dec: 0 }, grid: { ra0: 0, dec0: 0, n: 3, scaleArcsec: 1 }, fov: st.fovArcsec, pending: [], budget: 0, started: 0, done: 0, failed: 0, channelOf: new Map(), workers: 0, lastRebuild: 0, rebuildCost: 0, timing };
     try {
       st.setStatus({ phase: 'resolving', message: label, loaded: 0, total: 0, remaining: 0 });
       const { target, pos, presetId } = await this.resolveInput(input, signal);
@@ -460,13 +460,12 @@ export class RealPipeline implements AppPipeline {
       grid,
       fov,
       pending,
-      budget: Math.min(MAX_EXPOSURES_PER_FIELD, pending.length),
+      budget: initialLoadBudget(pending.length, pending.filter((e) => this.bundled.has(e.id)).length),
       started: 0,
       done: 0,
       failed: 0,
       channelOf,
       workers: 0,
-      firstPassDone: false,
       lastRebuild: 0,
       rebuildCost: 0,
       timing,
@@ -589,20 +588,21 @@ export class RealPipeline implements AppPipeline {
     this.rebuildSequence();
     const remaining = run.pending.length;
     st.setStatus({ phase: 'ready', loaded: run.done, total: run.budget, message: undefined, remaining });
-    if (!run.firstPassDone) {
-      run.firstPassDone = true;
-      // Let the ready state paint and the blink start before the (synchronous) measurement pass.
-      // Gaia stars first (comparison stars and blend checks), but never wait more than 6 s for them.
-      const go = () => {
-        if (this.isStale(run)) return;
-        void Promise.race([this.ensureGaia(), new Promise((r) => setTimeout(r, 6000))]).then(() => {
-          if (!this.isStale(run)) void this.measure(null);
-        });
-      };
-      const ric = (globalThis as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
-      if (ric) ric(go, { timeout: 1500 });
-      else setTimeout(go, 300);
-    }
+    // Recompute after EVERY batch so full-data results replace the preview's measurements.
+    // A scheduled preview pass must not run after "load more" or a new selection has started.
+    const completed = run.done;
+    const picked = st.picked;
+    const current = () => !this.isStale(run) && run.done === completed && run.started === run.budget && run.workers === 0 && useApp.getState().picked === picked;
+    const go = () => {
+      if (!current()) return;
+      // Gaia stars first (comparison stars and blend checks), but never wait more than 6 s.
+      void Promise.race([this.ensureGaia(), new Promise((r) => setTimeout(r, 6000))]).then(() => {
+        if (current()) void this.measure(picked);
+      });
+    };
+    const ric = (globalThis as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+    if (ric) ric(go, { timeout: 1500 });
+    else setTimeout(go, 300);
     if (st.overlaysOn.gaia) void this.ensureGaia();
     if (st.overlaysOn.solarSystem) this.scheduleSso(0);
   }
@@ -611,9 +611,14 @@ export class RealPipeline implements AppPipeline {
   loadMore(): void {
     const run = this.run;
     if (!run || this.isStale(run) || !run.pending.length) return;
+    // Avoid extending the budget repeatedly while an explicit batch is still in flight.
+    if (run.workers > 0) return;
+    this.measureCtrl?.abort();
+    clearMeasurements();
+    useApp.getState().setSpectrum([]);
     run.budget = Math.min(run.started + run.pending.length, run.budget + MAX_EXPOSURES_PER_FIELD);
     run.timing.total = run.budget;
-    if (run.workers > 0) return;
+    run.timing.done = undefined;
     void this.loadAll(run);
   }
 
@@ -948,7 +953,7 @@ export class RealPipeline implements AppPipeline {
     this.ssoOverlays = [];
     const ctrl = new AbortController();
     const timing: PipelineTiming = { name: `${st.query} (fov ${fov}")`, t0: performance.now(), loaded: 0, total: 0, failed: 0, source: keep.source };
-    this.run = { sid, ctrl, center: pos, grid: makeGrid(pos, fov), fov, pending: [], budget: 0, started: 0, done: 0, failed: 0, channelOf: new Map(), workers: 0, firstPassDone: false, lastRebuild: 0, rebuildCost: 0, timing };
+    this.run = { sid, ctrl, center: pos, grid: makeGrid(pos, fov), fov, pending: [], budget: 0, started: 0, done: 0, failed: 0, channelOf: new Map(), workers: 0, lastRebuild: 0, rebuildCost: 0, timing };
     st.setFrames([]);
     st.setOverlays([]);
     st.setSpectrum([]);
@@ -979,7 +984,7 @@ export class RealPipeline implements AppPipeline {
     if (!busy) return;
     // Keep what has loaded so far on screen.
     if (session.exposureFrames.size) this.rebuildSequence();
-    useApp.getState().setStatus({ phase: session.exposureFrames.size ? 'ready' : 'idle', message: 'cancelled', remaining: run.pending.length + (run.budget - run.started) });
+    useApp.getState().setStatus({ phase: session.exposureFrames.size ? 'ready' : 'idle', message: 'cancelled', remaining: run.pending.length + run.started - run.done });
   }
 
   /** Re-open whatever was opened last (used by "try again"). */

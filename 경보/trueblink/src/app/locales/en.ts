@@ -27,6 +27,7 @@ const ui: Record<string, string> = {
   'viewer.label': 'Blink viewer. Click a point to measure it.',
   'viewer.empty': 'Pick a challenge target or type coordinates to start.',
   'viewer.loading': 'Loading images…',
+  'viewer.noFrames': 'No images for this selection. Try another band group or sequence, or load more exposures if available.',
   'viewer.north': 'N',
   'viewer.east': 'E',
   'viewer.nodata': 'hatched = no data',

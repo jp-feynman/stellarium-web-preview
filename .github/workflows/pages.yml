@@ -29,6 +29,8 @@ jobs:
         run: npm run setup
       - name: Check site routing and celestial coordinate handoff
         run: node --test scripts/server.test.mjs '중선/v1.2.0/tests/analysis-target.test.mjs'
+      - name: Check analysis and progressive loading
+        run: npm --prefix 경보/trueblink test
       - name: Build entrance, planetarium and analysis workbench
         env:
           # The team's existing public SPHEREx-only relay supports CORS from Pages.
