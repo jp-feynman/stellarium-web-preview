@@ -12,15 +12,15 @@
   "patches": [
     "SConstruct: Windows drivers and response-file linking",
     "tools/make-assets.py: Windows paths, Python invocation and CRLF normalization",
-    "src/js/canvas.js: physical-pixel resize comparison and maxPixelRatio",
+    "src/js/canvas.js: physical-pixel resize comparison, maxPixelRatio and setRenderPaused lifecycle",
     "src/js/pre.js: high-performance WebGL preference",
     "src/modules/lines.c: bounded grid-label intersection at projection seams"
   ],
   "artifacts": [
     {
       "file": "stellarium-web-engine.js",
-      "bytes": 104539,
-      "sha256": "81c4e4262a07c7310fb3f000553bb7c488c50dd526f73bca99627f4e54d15f4b"
+      "bytes": 105081,
+      "sha256": "918e2c36d896955ace9ea2da7df17f76ed27279f03c6430e549726f60cc80377"
     },
     {
       "file": "stellarium-web-engine.wasm",

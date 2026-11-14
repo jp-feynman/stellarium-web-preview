@@ -26,7 +26,7 @@ import {
 } from '../../core/types';
 import { waveTables } from '../../core/wave';
 import { skyToPix } from '../../core/wcs';
-import { solarSystemOverlays } from '../asteroid';
+import { solarSystemOverlays } from '../asteroid/overlays';
 import { MAX_EXPOSURES_PER_FIELD, PARALLEL_CUTOUTS, SEARCH_TIMEOUT_MS } from '../config';
 import { clearMeasurements, runMeasurements } from '../measure';
 import { defaultView, findPreset as findAppPreset, PRESETS as APP_PRESETS } from '../presets';

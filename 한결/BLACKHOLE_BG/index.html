@@ -28,6 +28,12 @@
   }
   a { color: inherit; }
   a:focus-visible, button:focus-visible { outline: 2px solid var(--ice); outline-offset: 5px; }
+  .navigation-status {
+    position: fixed; z-index: 50; left: 50%; bottom: 24px; transform: translateX(-50%);
+    max-width: calc(100vw - 40px); margin: 0; padding: 12px 20px;
+    border: 1px solid var(--line); border-radius: 12px; background: #101725;
+    color: var(--ink); font-size: 14px; pointer-events: none;
+  }
 
   /* ---------- Hero ---------- */
   .hero {
@@ -297,6 +303,7 @@
   </section>
   <footer>데이터: NASA/IPAC Infrared Science Archive (IRSA) · SPHEREx · NASA/JPL-Caltech</footer>
 </div>
+<p id="navigation-status" class="navigation-status" role="status" aria-live="polite" hidden></p>
 
 <script src="bbh-physics.js"></script>
 <script src="bbh-eob.js"></script>
@@ -416,9 +423,6 @@
     }
   });
 
-  // Separate pages release the landing renderer; a cached Back restores it.
-  window.addEventListener("pagehide", () => gh?.setActive(false));
-  window.addEventListener("pageshow", () => gh?.setActive(true));
   window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", (event) => {
     if (!gh) return;
     gh.reduce = event.matches;
@@ -426,5 +430,6 @@
   });
 })();
 </script>
+<script src="navigation.js"></script>
 </body>
 </html>

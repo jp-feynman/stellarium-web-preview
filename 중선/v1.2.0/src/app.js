@@ -692,6 +692,7 @@ async function onReady(engine) {
     $('#engine-status').dataset.state = 'ready';
     syncTime();
     statusTimer = setInterval(syncTime, 500);
+    syncRendering();
     if (window.innerWidth < 720) setPanel(false);
   } catch (error) { fail('하늘을 초기화하지 못했습니다. 새로고침 후 다시 시도해 주세요.', error); }
 }
@@ -740,5 +741,15 @@ async function start() {
     if (engine?.catch) engine.catch((error) => fail('WebAssembly를 불러오지 못했습니다. 서버 연결을 확인해 주세요.', error));
   } catch (error) { fail('엔진 파일을 찾을 수 없습니다. npm run build 후 다시 실행해 주세요.', error); }
 }
-const analysis = createAnalysisController({ getEngine: () => stel, notify: toast });
+function syncRendering() {
+  // Keep the sky and its selection in memory, but stop GPU/CPU work while covered.
+  const paused = document.hidden || $('#analysis-dialog').open;
+  if (!stel?.setRenderPaused) return;
+  stel.setRenderPaused(paused);
+  $('#sky-canvas').dataset.rendering = paused ? 'paused' : 'running';
+}
+const analysis = createAnalysisController({ getEngine: () => stel, notify: toast, onVisibilityChange: syncRendering });
+document.addEventListener('visibilitychange', syncRendering);
+window.addEventListener('pagehide', () => stel?.setRenderPaused?.(true));
+window.addEventListener('pageshow', syncRendering);
 start();

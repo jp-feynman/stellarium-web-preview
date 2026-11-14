@@ -1,12 +1,13 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
 import { buildAnalysisUrl, targetFromVector } from './analysis-target.js';
 
-export function createAnalysisController({ getEngine, notify }) {
+export function createAnalysisController({ getEngine, notify, onVisibilityChange = () => {} }) {
   const $ = (selector) => document.querySelector(selector);
   const dialog = $('#analysis-dialog');
   const frame = $('#analysis-frame');
   const base = new URL('../', import.meta.url);
   let loadTimer;
+  let opening = 0;
 
   function selectionTarget() {
     const engine = getEngine();
@@ -42,11 +43,17 @@ export function createAnalysisController({ getEngine, notify }) {
     $('#analysis-loading').hidden = false;
     $('#analysis-loading').textContent = '분석 도구를 불러오는 중…';
     clearTimeout(loadTimer);
-    frame.src = buildAnalysisUrl(target, base);
     if (!dialog.open) dialog.showModal();
-    loadTimer = setTimeout(() => {
-      if (!$('#analysis-loading').hidden) $('#analysis-loading').textContent = '불러오기가 지연되고 있습니다. 새 탭으로 열거나 잠시 후 다시 시도해 주세요.';
-    }, 20000);
+    onVisibilityChange(true);
+    // Paint the dialog with the sky renderer paused before starting the second app.
+    const request = ++opening;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (request !== opening || !dialog.open) return;
+      frame.src = buildAnalysisUrl(target, base);
+      loadTimer = setTimeout(() => {
+        if (!$('#analysis-loading').hidden) $('#analysis-loading').textContent = '불러오기가 지연되고 있습니다. 새 탭으로 열거나 잠시 후 다시 시도해 주세요.';
+      }, 20000);
+    }));
   }
 
   $('#selection-analyze').addEventListener('click', () => open(selectionTarget()));
@@ -58,9 +65,11 @@ export function createAnalysisController({ getEngine, notify }) {
   });
   $('#close-analysis').addEventListener('click', () => dialog.close());
   dialog.addEventListener('close', () => {
+    opening++;
     clearTimeout(loadTimer);
     // Unload requests, WebGL and workers when the workbench is no longer visible.
     frame.src = 'about:blank';
+    onVisibilityChange(false);
   });
   frame.addEventListener('load', () => {
     if (frame.getAttribute('src') === 'about:blank') return;

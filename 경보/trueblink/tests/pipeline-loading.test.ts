@@ -33,7 +33,7 @@ vi.mock('../src/app/measure', () => ({
   runMeasurements: transport.measure,
   clearMeasurements: transport.clearMeasurements,
 }));
-vi.mock('../src/app/asteroid', () => ({ solarSystemOverlays: vi.fn().mockResolvedValue([]) }));
+vi.mock('../src/app/asteroid/overlays', () => ({ solarSystemOverlays: vi.fn().mockResolvedValue([]) }));
 
 import { RealPipeline, initialLoadBudget } from '../src/app/pipeline';
 import { PRESETS } from '../src/app/presets';

@@ -27,8 +27,8 @@ jobs:
           cache-dependency-path: 경보/trueblink/package-lock.json
       - name: Install locked analysis dependencies
         run: npm run setup
-      - name: Check site routing and celestial coordinate handoff
-        run: node --test scripts/server.test.mjs '중선/v1.2.0/tests/analysis-target.test.mjs'
+      - name: Check routing, celestial coordinates and screen transitions
+        run: npm test
       - name: Check analysis and progressive loading
         run: npm --prefix 경보/trueblink test
       - name: Build entrance, planetarium and analysis workbench

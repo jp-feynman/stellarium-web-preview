@@ -14,9 +14,35 @@ Module.afterInit(function() {
   var mouseDown = false;
   var mouseButtons = 0;
   var mousePos;
+  var renderRequest = null;
+  var renderPaused = false;
+
+  function scheduleRender() {
+    if (!renderPaused && renderRequest === null)
+      renderRequest = window.requestAnimationFrame(render);
+  }
+
+  // An embedded workbench can cover the sky completely. Keep its WebGL context,
+  // selection and time controls, but do no sky work until it becomes visible.
+  // core_update uses wall-clock elapsed time, so the selected time speed still
+  // accounts for time spent covered when rendering resumes.
+  Module['setRenderPaused'] = function(paused) {
+    renderPaused = !!paused;
+    if (renderPaused) {
+      if (renderRequest !== null) window.cancelAnimationFrame(renderRequest);
+      renderRequest = null;
+      if (mouseDown && mousePos)
+        Module._core_on_mouse(0, 0, mousePos.x, mousePos.y, mouseButtons);
+      mouseDown = false;
+    } else {
+      scheduleRender();
+    }
+  };
 
   // Function called at each frame
   var render = function(timestamp) {
+    renderRequest = null;
+    if (renderPaused) return;
 
     if (mouseDown)
       Module._core_on_mouse(0, 1, mousePos.x, mousePos.y, mouseButtons);
@@ -34,6 +60,12 @@ Module.afterInit(function() {
 
     var displayWidth  = rect.width;
     var displayHeight = rect.height;
+    // A collapsed canvas must not resize the drawing buffer or enter the native
+    // renderer with a zero-sized viewport. It may become visible on a later frame.
+    if (displayWidth <= 0 || displayHeight <= 0) {
+      scheduleRender();
+      return;
+    }
     var targetWidth = Math.max(1, Math.round(displayWidth * dpr));
     var targetHeight = Math.max(1, Math.round(displayHeight * dpr));
     var sizeChanged = (canvas.width !== targetWidth) ||
@@ -47,9 +79,10 @@ Module.afterInit(function() {
     // TODO: manage paning and flicking here
 
     Module._core_update();
+    if (renderPaused) return;
     Module._core_render(displayWidth, displayHeight, dpr);
 
-    window.requestAnimationFrame(render)
+    scheduleRender();
   }
 
   var fixPageXY = function(e) {
@@ -165,5 +198,5 @@ Module.afterInit(function() {
   setupMouse();
 
   // Kickoff rendering at max FPS, normally 60 FPS on a browser.
-  window.requestAnimationFrame(render)
+  scheduleRender();
 })
