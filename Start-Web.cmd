@@ -7,11 +7,15 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
+node scripts\setup.mjs
+if errorlevel 1 goto failed
 node scripts\build.mjs
-if errorlevel 1 (
-  pause
-  exit /b 1
-)
-echo Keep this window open while using Stellarium. Press Ctrl+C to stop.
+if errorlevel 1 goto failed
 node scripts\serve.mjs --open
-if errorlevel 1 pause
+if errorlevel 1 goto failed
+exit /b 0
+:failed
+echo.
+echo The site could not start. Check the error above.
+pause
+exit /b 1

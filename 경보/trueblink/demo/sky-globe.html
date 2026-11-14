@@ -1,0 +1,71 @@
+<!doctype html>
+<!-- AI-assisted code (Claude) written during NASA Space Apps Challenge 2026. See AI_USE.md. -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SkyGlobe demo</title>
+    <link rel="icon" href="data:," />
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: var(--bg, #080c16);
+        color: var(--text, #e8edf7);
+        font-family: var(--font, system-ui, sans-serif);
+      }
+      #app {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        height: 100%;
+      }
+      #bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--gap, 12px);
+        align-items: center;
+        padding: 8px 12px;
+        background: var(--panel, #111827);
+        border-bottom: 1px solid var(--border, #26324a);
+        font-size: 13px;
+      }
+      #bar button {
+        background: var(--panel-2, #172033);
+        color: var(--text, #e8edf7);
+        border: 1px solid var(--border, #26324a);
+        border-radius: var(--radius-sm, 6px);
+        padding: 4px 8px;
+        cursor: pointer;
+        font: inherit;
+      }
+      #bar label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--accent-wave, #5ad1e6);
+      }
+      #pick,
+      #view {
+        font-family: var(--mono, monospace);
+        color: var(--muted, #93a0b8);
+      }
+      #globe {
+        position: relative;
+        min-height: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div id="bar">
+        <span id="targets"></span>
+        <label>Channel <input id="channel" type="range" min="1" max="102" value="21" /> <span id="chanText"></span></label>
+        <span id="pick">Click the sky to read RA/Dec</span>
+        <span id="view"></span>
+      </div>
+      <div id="globe"></div>
+    </div>
+    <script type="module" src="./sky-globe.ts"></script>
+  </body>
+</html>

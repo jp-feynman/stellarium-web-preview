@@ -1,0 +1,53 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><base href="../../"><title>병합 후 재등장 연속성 검사</title>
+<style>body{margin:0;background:#0c1220;color:#dbe9ff;font:14px system-ui}header,pre{padding:16px;margin:0}button{padding:10px}#host{width:960px;height:640px;position:relative;overflow:hidden}canvas{width:100%;height:100%;display:block}pre{white-space:pre-wrap}</style></head><body>
+<header>병합 후 재등장 연속성 검사 · <button id="live">실제 병합 → 새 블랙홀 유입 검사</button></header>
+<div id="host"><canvas id="sky"></canvas></div><pre id="out">준비</pre>
+<script src="bbh-physics.js"></script><script src="bbh-eob.js"></script><script src="bbh-sim.js"></script><script src="gravity-hero.js"></script><script>
+class SpawnHero extends GravityHero {
+ _seed(){}
+ _loadSky(){const c=document.createElement('canvas');c.width=2048;c.height=512;const ctx=c.getContext('2d');
+ const g=ctx.createLinearGradient(0,0,2048,512);g.addColorStop(0,'#09264a');g.addColorStop(1,'#947551');ctx.fillStyle=g;ctx.fillRect(0,0,2048,512);
+ for(let y=0;y<512;y+=13)for(let x=0;x<2048;x+=17){ctx.fillStyle=((x+y)%3)?'#516d8a':'#dce8fc';ctx.fillRect(x,y,2,2);}
+ this.setBackground(c,'test');}
+}
+const h=new SpawnHero(document.querySelector('#sky'),{host:document.querySelector('#host')});h.setActive(false);
+function snapshot(){h._draw(1);const p=new Uint8Array(h.canvas.width*h.canvas.height*4);h.gl.readPixels(0,0,h.canvas.width,h.canvas.height,h.gl.RGBA,h.gl.UNSIGNED_BYTE,p);return p;}
+function delta(a,b){let sum=0,large=0,max=0;for(let i=0;i<a.length;i+=4){let d=0;for(let c=0;c<3;c++){const v=Math.abs(a[i+c]-b[i+c]);sum+=v;d=Math.max(d,v);}max=Math.max(max,d);if(d>24)large++;}return {meanRGB:sum/(a.length*.75),largeFraction:large/(a.length/4),maxChannel:max};}
+async function continuity(){
+ const results=[],random=Math.random;let seed=42;
+ Math.random=()=>{seed=(1664525*seed+1013904223)>>>0;return seed/4294967296;};
+ try{for(const side of [0,1,2,3]){
+  h.sim=new BBHSim({c:h.C,hist:h.HIST,eob:true});h.sim.add(480,320,0,0,3);
+  h.waveSim=null;const before=snapshot(),rand=h._rand;h._rand=(a,b)=>(a+b)/2;
+  const saved=Math.random;let call=0;Math.random=()=>++call===1?(side+.1)/4:saved();
+  // _randMass uses _rand; the first raw random call chooses the edge.
+  h._spawn();Math.random=saved;h._rand=rand;
+  const b=h.sim.bodies.at(-1),birth=delta(before,snapshot()),base={x:b.x,y:b.y,M:b.M};
+  let previous=snapshot(),maxFirstHalfMean=0,firstStep=null;
+  for(let frame=1;frame<=120;frame++){
+   if(h._advanceArrivals)h._advanceArrivals(1/60);
+   const current=snapshot(),d=delta(previous,current);if(frame===1)firstStep=d;
+   if(frame<=30)maxFirstHalfMean=Math.max(maxFirstHalfMean,d.meanRGB);previous=current;
+  }
+  results.push({side,birth,firstStep,maxFirstHalfMean,finalOpacity:h.sim.components().at(-1).opacity,
+    physicalStateUnchanged:base.x===b.x&&base.y===b.y&&base.M===b.M,glError:h.gl.getError()});
+ }}finally{Math.random=random;}
+ const result={pass:results.every(r=>r.birth.meanRGB===0&&r.birth.maxChannel===0&&r.firstStep.meanRGB<.05&&r.finalOpacity===1&&r.physicalStateUnchanged&&r.glError===0),results};
+ document.querySelector('#out').textContent=JSON.stringify(result,null,2);return result;
+}
+async function live(){
+ h.setActive(false);h.sim=new BBHSim({c:h.C,hist:h.HIST,eob:true});h.spawnAt=[];h.seenEvents=0;h.slow=1;h.MAX_BH=2;
+ h.sim.add(450,320,0,0,2.4);h.sim.add(455,320,0,0,1.6);
+ const start=performance.now(),bg=h.bgTex,program=h.main.p,size=[h.canvas.width,h.canvas.height],frames=[],spawns=[],spawn=h._spawn.bind(h);let last=0,resizeEvents=0;
+ const observer=new MutationObserver(records=>resizeEvents+=records.length);observer.observe(h.canvas,{attributes:true,attributeFilter:['width','height']});
+ h._spawn=()=>{const t0=performance.now();spawn();spawns.push({t:(performance.now()-start)/1000,cpuMs:performance.now()-t0,id:h.sim.bodies.at(-1).id});};
+ h.onStage=()=>{const now=performance.now();if(last)frames.push({t:(now-start)/1000,ms:now-last,step:h.timings.stepMs});last=now;};
+ h.setActive(true);
+ await new Promise(resolve=>setTimeout(resolve,12000));
+ h.setActive(false);observer.disconnect();h._spawn=spawn;
+ const windows=spawns.map(s=>{const f=frames.filter(f=>Math.abs(f.t-s.t)<.5),sorted=f.map(f=>f.ms).sort((a,b)=>a-b);return {...s,frames:f.length,p95Ms:sorted[Math.floor(sorted.length*.95)],maxMs:Math.max(...sorted)};});
+ const result={pass:spawns.length>0&&resizeEvents===0&&bg===h.bgTex&&program===h.main.p&&h.sim.components().every(q=>Number.isFinite(q.x+q.y+q.M+q.rho)),mergers:h.sim.events.length,spawns:windows,resizeEvents,backgroundUnchanged:bg===h.bgTex,programUnchanged:program===h.main.p,bufferUnchanged:size[0]===h.canvas.width&&size[1]===h.canvas.height,glError:h.gl.getError()};
+ document.querySelector('#out').textContent=JSON.stringify(result,null,2);return result;
+}
+window.tests={continuity,live};document.querySelector('#live').onclick=live;
+</script></body></html>

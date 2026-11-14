@@ -1,0 +1,54 @@
+<!doctype html>
+<!-- AI-assisted code (Claude) written during NASA Space Apps Challenge 2026. See AI_USE.md. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CubeView demo</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/src/app/styles/tokens.css" />
+    <style>
+      html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); }
+      header { padding: 10px 16px 4px; }
+      h1 { font-size: 16px; margin: 0 0 4px; }
+      p.note { margin: 0; color: var(--muted); font-size: 12px; max-width: 900px; }
+      .bar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 8px 16px; font-size: 13px; }
+      .bar .group { display: flex; gap: 4px; align-items: center; }
+      button { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px 10px; font: inherit; cursor: pointer; }
+      button[aria-pressed='true'] { border-color: var(--accent); color: var(--accent); }
+      button.time[aria-pressed='true'] { border-color: var(--accent-time); color: var(--accent-time); }
+      button.wave[aria-pressed='true'] { border-color: var(--accent-wave); color: var(--accent-wave); }
+      select { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); font: inherit; }
+      #cube { position: relative; height: 620px; margin: 0 16px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--bg); }
+      #readout { padding: 6px 16px; font-family: var(--mono); font-size: 12px; color: var(--muted); min-height: 18px; }
+      @media (max-width: 640px) { #cube { height: 460px; margin: 0 8px; } }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>CubeView: sky x time / sky x wavelength</h1>
+      <p class="note">Synthetic sky (not real data): 3 visits x 12 exposures, fixed stars, one mover (exaggerated motion, red colour) and one variable star. Drag to orbit, scroll to zoom, hover a slice to read its label.</p>
+    </header>
+    <div class="bar">
+      <span class="group">Axis
+        <button id="axis-time" class="time" aria-pressed="true">Time</button>
+        <button id="axis-wave" class="wave" aria-pressed="false">Wavelength</button>
+      </span>
+      <span class="group">View
+        <button data-view="oblique" aria-pressed="true">Oblique</button>
+        <button data-view="front" aria-pressed="false">Front</button>
+        <button data-view="side" aria-pressed="false">Side</button>
+        <button data-view="top" aria-pressed="false">Top</button>
+      </span>
+      <label class="group">Stretch
+        <select id="mode"><option>asinh</option><option>linear</option><option>sqrt</option><option>log</option></select>
+      </label>
+      <label class="group">Upper limit <input id="hi" type="range" min="0" max="100" value="50" /> <span id="hi-val"></span></label>
+      <label class="group"><input id="invert" type="checkbox" /> Invert</label>
+      <label class="group"><input id="tracks" type="checkbox" checked /> Mover track</label>
+    </div>
+    <div id="cube"></div>
+    <div id="readout">Hover the stack.</div>
+    <script type="module" src="./cube-view.ts"></script>
+  </body>
+</html>

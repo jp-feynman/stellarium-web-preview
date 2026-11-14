@@ -1,0 +1,13 @@
+{
+  "pass": true,
+  "wallSeconds": 600,
+  "frames": 18000,
+  "physicsSeconds": 567.5333094998313,
+  "mergers": 36,
+  "retirements": 11,
+  "maxMass": 12.501493478160391,
+  "maxShadowRadius": 64.95966562399428,
+  "maxPopulation": 3,
+  "pendingRespawns": 0,
+  "cpuMs": 1793.040708
+}

@@ -1,3 +1,5 @@
-# Keep generated artifacts byte-identical to engine/build-info.json.
-engine/stellarium-web-engine.js -text
-engine/stellarium-web-engine.wasm -text
+* text=auto
+*.cmd text eol=crlf
+# Generated engine bytes must match the checked-in build-info.json hashes.
+**/engine/stellarium-web-engine.js -text
+**/engine/stellarium-web-engine.wasm -text

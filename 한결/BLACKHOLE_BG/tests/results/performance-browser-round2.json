@@ -1,0 +1,40 @@
+{
+  "stage": "isolated",
+  "stages": [
+    "inspiral",
+    "plunge",
+    "merger",
+    "ringdown"
+  ],
+  "phaseP95Ms": {
+    "inspiral": 17.8,
+    "plunge": 17.6,
+    "merger": 17.6,
+    "ringdown": 17.5
+  },
+  "mergers": 1,
+  "retirementsObserved": 0,
+  "population": 1,
+  "retiring": 0,
+  "drawCount": 3306,
+  "peakPhysicsMs": 5.7,
+  "peakDrawSubmissionMs": 1.6,
+  "renderMeanMs": 21.5,
+  "renderSamples": 1200,
+  "physicsTime": 52.251,
+  "finite": true,
+  "frameSamples": 1200,
+  "meanMs": 16.67,
+  "p95Ms": 17.6,
+  "maxMs": 19.3,
+  "unitsUnchanged": true,
+  "size": [
+    2035,
+    1148
+  ],
+  "drawingBuffer": [
+    2306,
+    1301
+  ],
+  "c": 562.5
+}

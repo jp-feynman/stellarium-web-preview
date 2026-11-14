@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>방구석 천문학자 · SPHEREx Sky Lab</title>
+<meta name="description" content="플라네타리움에서 별과 천체를 고르고, SPHEREx 관측 영상과 분석 도구로 이어지는 천문 탐색 공간입니다.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #eef2f8;
+    --ink-dim: #a9b3c4;
+    --ink-faint: #6f7a8d;
+    --line: rgba(238, 242, 248, 0.14);
+    --accent: #ffc27a;
+    --accent-ink: #1a1206;
+    --ice: #9cd4ff;
+    --bg: #04060c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  body {
+    font-family: "Noto Sans KR", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.6;
+  }
+  a { color: inherit; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--ice); outline-offset: 5px; }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    position: relative;
+    height: 100vh;
+    height: 100svh;
+    min-height: 560px;
+    overflow: hidden;
+    /* shown until the WebGL sky is ready (and if WebGL is missing) */
+    background:
+      radial-gradient(ellipse 38% 16% at 50% 50%, rgba(255, 214, 160, 0.30), transparent 70%),
+      linear-gradient(180deg, transparent 38%, rgba(160, 80, 70, 0.20) 50%, transparent 62%),
+      var(--bg);
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #sky {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    display: block;
+    opacity: 0;
+    transition: opacity 900ms ease;
+  }
+  #sky.ready { opacity: 1; }
+  .hero.grab { cursor: grab; }
+  .hero.grabbing { cursor: grabbing; }
+
+  /* The content floats over the sky but lets clicks fall through to it. */
+  .layer {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    pointer-events: none;
+  }
+  .layer a, .layer button, .layer label { pointer-events: auto; }
+
+  nav {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 24px;
+    padding: 22px clamp(20px, 4vw, 48px);
+  }
+  .brand { display: flex; align-items: baseline; gap: 10px; text-decoration: none; }
+  .brand b { font-weight: 900; font-size: 17px; letter-spacing: -0.01em; }
+  .brand span { font-family: "Space Grotesk", sans-serif; font-size: 12px; color: var(--ink-dim); letter-spacing: 0.08em; text-transform: uppercase; }
+  .links { display: flex; gap: clamp(14px, 2.4vw, 30px); font-size: 14px; }
+  .links a { text-decoration: none; color: var(--ink-dim); transition: color 150ms; }
+  .links a:hover { color: var(--ink); }
+
+  .copy {
+    position: relative;
+    isolation: isolate;
+    margin-top: auto; margin-bottom: auto;
+    padding: 0 clamp(20px, 6vw, 88px);
+    max-width: 880px;
+    word-break: keep-all;
+  }
+  .copy::before {
+    /* soft darkening behind the text only, so the sky stays bright elsewhere */
+    content: ""; position: absolute; z-index: -1;
+    inset: -44px -70px;
+    background: radial-gradient(ellipse at 35% 50%, rgba(4, 6, 12, 0.94) 0%, rgba(4, 6, 12, 0.8) 42%, rgba(4, 6, 12, 0) 76%);
+  }
+  .kicker {
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 12.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 18px;
+  }
+  h1 {
+    margin: 0 0 18px;
+    font-size: clamp(34px, 5.6vw, 66px);
+    line-height: 1.12;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    text-shadow: 0 2px 30px rgba(0, 0, 0, 0.6);
+  }
+  .lede {
+    margin: 0 0 30px;
+    font-size: clamp(15px, 1.5vw, 18px);
+    color: #e3e8f0;
+    max-width: 34em;
+    text-shadow: 0 1px 4px #04060c, 0 2px 16px rgba(0, 0, 0, 0.95);
+  }
+  .ctas { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 22px; border-radius: 999px;
+    font-size: 15px; font-weight: 700; text-decoration: none;
+    transition: transform 150ms, background 150ms, border-color 150ms;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); }
+  .btn.primary:hover { background: #ffd39c; }
+  .btn.ghost { border: 1px solid var(--line); color: var(--ink); background: rgba(8, 11, 20, 0.45); backdrop-filter: blur(6px); }
+  .btn.ghost:hover { border-color: rgba(238, 242, 248, 0.35); }
+
+  .foot {
+    display: flex; justify-content: space-between; align-items: flex-end; gap: 16px;
+    padding: 0 clamp(20px, 4vw, 48px) 20px;
+    font-size: 12px; color: var(--ink-faint);
+  }
+  .hint {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 7px 13px; border-radius: 999px;
+    background: rgba(8, 11, 20, 0.55); border: 1px solid var(--line);
+    color: var(--ink-dim); font-size: 12.5px;
+    transition: opacity 600ms;
+  }
+  .hint i { width: 6px; height: 6px; border-radius: 50%; background: var(--ice); box-shadow: 0 0 10px var(--ice); }
+  .hint.used { opacity: 0.35; }
+  .credit { text-align: right; max-width: 480px; line-height: 1.55; }
+  .credit em { font-style: normal; color: var(--ink-dim); }
+  .left { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+  .model-btn {
+    margin-left: 6px; padding: 2px 9px; border-radius: 999px; cursor: pointer;
+    font: inherit; font-size: 11.5px; color: var(--ink-dim);
+    background: rgba(8, 11, 20, 0.55); border: 1px solid var(--line);
+  }
+  .model-btn:hover { color: var(--ink); border-color: rgba(238, 242, 248, 0.35); }
+
+  /* waveform strip: only while a coalescence is running */
+  .wave {
+    width: 300px; padding: 10px 12px 8px; border-radius: 12px;
+    background: rgba(6, 9, 17, 0.72); border: 1px solid var(--line); backdrop-filter: blur(6px);
+    opacity: 0; transform: translateY(6px); transition: opacity 500ms, transform 500ms;
+    pointer-events: none;
+  }
+  .wave.on { opacity: 1; transform: none; }
+  .wave-head { display: flex; align-items: baseline; gap: 8px; font-size: 11.5px; color: var(--ink-dim); white-space: nowrap; min-width: 0; }
+  .wave-head #stage-note { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .wave-head #stage-val { flex: none; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .wave-head b { font-family: "Space Grotesk", sans-serif; letter-spacing: 0.1em; font-size: 11.5px; color: var(--ice); }
+  .wave-head b.plunge { color: #c8a6ff; }
+  .wave-head b.merger { color: var(--accent); }
+  .wave-head b.ringdown { color: #ff9b8a; }
+  .wave canvas { display: block; width: 276px; height: 56px; margin: 6px 0 4px; }
+  .wave-legend { font-size: 10.5px; color: var(--ink-faint); }
+  .wave-legend .hp { color: var(--ice); margin-right: 6px; }
+  .wave-legend .hx { color: #c8a6ff; margin-right: 8px; }
+
+  .model {
+    position: absolute; right: clamp(20px, 4vw, 48px); bottom: 84px; z-index: 3;
+    width: min(460px, calc(100vw - 40px)); max-height: 62vh; overflow: auto;
+    padding: 18px 20px; border-radius: 14px;
+    background: rgba(6, 9, 17, 0.94); border: 1px solid var(--line);
+    font-size: 12.5px; color: var(--ink-dim); line-height: 1.6;
+    pointer-events: auto; user-select: text;
+  }
+  .model h3 { margin: 0 0 10px; font-size: 14px; color: var(--ink); }
+  .model ul { margin: 0; padding-left: 16px; }
+  .model li { margin-bottom: 8px; }
+  .model b { color: var(--ink); font-weight: 500; margin-right: 4px; }
+  .model .src { margin: 10px 0 0; font-size: 11px; color: var(--ink-faint); }
+  .tag { display: inline-block; padding: 0 6px; border-radius: 4px; font-family: "Space Grotesk", sans-serif; font-size: 10px; letter-spacing: 0.06em; vertical-align: 1px; }
+  .tag.lec { background: rgba(156, 212, 255, 0.15); color: var(--ice); }
+  .tag.add { background: rgba(255, 194, 122, 0.15); color: var(--accent); }
+  .tag.ill { background: rgba(200, 166, 255, 0.15); color: #c8a6ff; }
+  .tag.vis { background: rgba(255, 155, 138, 0.15); color: #ff9b8a; }
+  .tag.gr { background: rgba(140, 230, 170, 0.15); color: #8ce6aa; }
+
+  /* ---------- Below the hero ---------- */
+  .section { padding: 84px clamp(20px, 6vw, 88px); border-top: 1px solid var(--line); }
+  .section h2 { font-size: clamp(22px, 2.6vw, 30px); margin: 0 0 8px; letter-spacing: -0.02em; }
+  .section > p { color: var(--ink-dim); margin: 0 0 36px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+  .card {
+    display: block; text-decoration: none;
+    padding: 24px; border-radius: 16px;
+    border: 1px solid var(--line); background: #080b14;
+    transition: border-color 150ms, transform 150ms;
+  }
+  .card:hover { border-color: rgba(255, 194, 122, 0.5); transform: translateY(-2px); }
+  .card small { font-family: "Space Grotesk", sans-serif; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; font-size: 11.5px; }
+  .card h3 { margin: 8px 0 6px; font-size: 19px; }
+  .card p { margin: 0; color: var(--ink-dim); font-size: 14px; }
+  footer { padding: 28px clamp(20px, 6vw, 88px) 40px; color: var(--ink-faint); font-size: 12.5px; border-top: 1px solid var(--line); }
+
+  @media (max-width: 640px) {
+    .hero { min-height: 720px; }
+    .brand { flex-wrap: wrap; gap: 2px 10px; }
+    .links { display: none; }
+    .copy::before { inset: -36px -50px; background: radial-gradient(ellipse at 40% 50%, rgba(4, 6, 12, 0.94) 0%, rgba(4, 6, 12, 0.8) 42%, transparent 78%); }
+    .lede { color: #e3e8f0; text-shadow: 0 1px 10px rgba(0, 0, 0, 0.95), 0 0 2px rgba(0, 0, 0, 0.9); }
+    .hint .long { display: none; }
+    .wave { width: 100%; max-width: 300px; }
+    .model { bottom: 120px; }
+    .foot { flex-direction: column; align-items: flex-start; }
+    .credit { text-align: left; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; }
+    .card:hover { transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="home">
+  <section class="hero" id="hero" aria-label="메인">
+    <canvas id="sky" aria-hidden="true"></canvas>
+    <div class="layer">
+      <nav aria-label="주 메뉴">
+        <a class="brand" href="./"><b>방구석 천문학자</b><span>SPHEREx Sky Lab</span></a>
+        <div class="links">
+          <a href="./planetarium/">플라네타리움</a>
+          <a href="./planetarium/?view=allsky">전천 지도</a>
+          <a href="./analysis/">분석 작업실</a>
+        </div>
+      </nav>
+
+      <div class="copy">
+        <p class="kicker">NASA Space Apps 2026 · SPHEREx Sky Lab</p>
+        <h1>별을 고르고,<br>그 빛을 읽다</h1>
+        <p class="lede">플라네타리움에서 궁금한 별이나 천체를 눌러보세요. 선택한 위치의 SPHEREx 관측 영상을 찾고, 시간과 파장에 따라 달라지는 빛을 분석할 수 있습니다.</p>
+        <div class="ctas">
+          <a class="btn primary" id="enter-planetarium" href="./planetarium/">플라네타리움 입장 →</a>
+          <a class="btn ghost" href="./planetarium/?view=allsky">전천 지도부터 보기</a>
+        </div>
+      </div>
+
+      <div class="foot">
+        <div class="left">
+          <div class="wave" id="wave" aria-live="polite">
+            <div class="wave-head"><b id="stage">INSPIRAL</b><span id="stage-note"></span><span id="stage-val"></span></div>
+            <canvas id="wave-canvas" width="300" height="64" aria-hidden="true"></canvas>
+            <div class="wave-legend"><span class="hp">h₊</span><span class="hx">h×</span> 방출 파형 · 궤도면 정면 시선</div>
+          </div>
+          <span class="hint" id="hint"><i></i>블랙홀을 끌어 합쳐보세요<span class="long"> · 빈 곳을 누르면 약한 파동이 퍼집니다</span></span>
+        </div>
+        <div class="credit">
+          <span id="credit"><em>배경</em> 불러오는 중…</span><br>
+          <em>블랙홀</em> PN + EOB 실시간 근사 · 병합 그림자는 예시
+          <button class="model-btn" id="model-btn" type="button" aria-expanded="false" aria-controls="model">모델·출처</button>
+        </div>
+      </div>
+      <aside class="model" id="model" hidden data-ui>
+        <h3>이 배경은 무엇을 계산하나요</h3>
+        <ul>
+          <li><b>움직임</b> 모든 블랙홀의 운동방정식을 매 순간 적분해요(RK4, 프레임과 무관한 물리 시간 간격). 정해진 궤도를 재생하지 않아요.</li>
+          <li><b>먼 거리의 중력</b> 아인슈타인 방정식을 두 점질량에 대해 v²/c²로 전개해 푼 후-뉴턴 운동방정식(조화 좌표, 질량중심계): 뉴턴 + 1PN + 2PN(보존) + 2.5PN(중력파 반작용). 계수는 Blanchet LRR(2014)과 Mirshekari(2013)로 대조했고, 2PN 보존 에너지가 실제로 보존되는지, 원궤도 진동수가 2PN 급수와 맞는지 테스트로 확인해요. PN 구간의 1PN·2PN은 12M→6M에서 감쇠하며, 접근 중인 쌍은 가능한 경우 8M 안쪽에서 EOB로 전환해요 <span class="tag add">ADDED MODEL</span></li>
+          <li><b>단일 블랙홀 렌즈</b> 슈바르츠실트 해의 널 측지선을 수치 적분한 휨각 α(b)와 포획 경계 b = 3√3M를 사용해요. 비회전·고립 블랙홀 식이며, 최종 잔해의 Kerr 렌즈는 구현하지 않았어요 <span class="tag gr">GR EXACT</span></li>
+          <li><b>여러 블랙홀의 렌즈</b> 그림자와 휨각이 같은 구면 각거리·포획 경계를 사용해요. 병합 중에는 두 성분과 총질량 단극을 같은 광학장으로 연결해요. 실제 쌍성 계량의 광선추적이나 사건지평선은 아니에요 <span class="tag ill">ILLUSTRATIVE</span></li>
+          <li><b>붙잡힘·나선</b> 가스가 있는 환경을 가정한 함께 도는 원반 마찰이에요. 포획을 빠르게 보이도록 세기를 강화했으며 진공 쌍성의 보편적 거동은 아니에요. EOB 구간에서는 이 마찰을 끄고 복사 토크를 사용해요 <span class="tag add">ADDED MODEL</span></li>
+          <li><b>무거운 쪽은 덜 움직임</b> 은하 별들과의 동역학적 마찰(찬드라세카르, 제동 ∝ 질량)로 무거운 블랙홀은 거의 멈추고 가벼운 쪽이 끌려와요. 혼자 있는 블랙홀의 느린 떠다님(속도 ∝ 1/√질량)은 다른 블랙홀의 중력이 느껴지기 시작하면 사라져서, 다가오는 쌍을 떼어놓지 않아요 <span class="tag add">ADDED MODEL</span></li>
+          <li><b>강한 장의 궤도·플런지</b> 2PN EOB 해밀토니안: A = 1−2/r+2ν/r³, D = 1−6ν/r². 복사에 의한 선도 원궤도 각운동량 손실을 더해 RK4로 적분해요. PN→EOB 위치·속도 연결은 좌표 근사이며, 정밀 SEOBNR 파형 모델은 아니에요 <span class="tag add">ADDED MODEL</span></li>
+          <li><b>3M 이후의 병합 그림자</b> 궤도 적분을 끝내고 위치·각속도·안쪽 속도를 이어받는 연속 광학 연결을 사용해요. 두 검은 영역은 그림자의 근사 표현이며, 공통 겉보기지평선을 푼 결과는 아니에요 <span class="tag ill">ILLUSTRATIVE</span></li>
+          <li><b>단계 구분</b> 인스파이럴 → 병합 → 링다운 <span class="tag lec">LECTURE p.10</span></li>
+          <li><b>잔해·링다운</b> 복사 에너지 Husa et al. 2016, 최종 스핀 Pan et al. 2011, l=m=2 준정규모드 Berti·Cardoso·Will 2006의 피팅식이에요. 질량·스핀 피팅은 비회전·준원궤도 쌍성에 대해 보정됐어요. 편심·정면 충돌은 보정 범위 밖 외삽이고, EOB 잔해 스핀은 주어진 각운동량을 넘지 않도록 제한해요 <span class="tag add">ADDED MODEL</span></li>
+          <li><b>시공간 일렁임</b> 실제 궤도에서 계산한 사중극 Q̈를 지연시간 t − r/c로 읽어, 그 자리의 변형률(∝ 1/r)만큼 별빛을 진행 방향에 수직으로 밀어요. 멀어질수록 약해지고, 블랙홀 바로 옆(근거리장)에서는 표시하지 않아요. 그림자도 같은 변위 좌표에서 샘플해요. 화면의 2차원 변형은 실제 관측 영상이 아닌 시각적 비유이며 변위는 ×12 과장해요. 빈 곳 클릭 파동도 연출 <span class="tag vis">VISUAL METAPHOR</span></li>
+          <li><b>큰 블랙홀 퇴장</b> 렌즈 영역이 화면의 18%를 넘거나 그림자 반지름이 짧은 화면 변의 7%를 넘으면 약 6초에 걸쳐 가장 가까운 가장자리로 퇴장해요. 추가 포획을 멈추는 배경 화면 관리이며, 중력파 반동을 계산한 물리적 방출은 아니에요 <span class="tag ill">ILLUSTRATIVE</span></li>
+          <li><b>화면 단위</b> 빛의 속도 약 450 px/s, 하늘은 화면 너비에 약 140°. 궤도가 빨라지면 전체 물리 시간을 부드럽게 늦춰요. 창 크기를 바꿔도 광속과 질량 단위는 유지해요 <span class="tag ill">ILLUSTRATIVE</span></li>
+          <li><b>수치상대론과의 구분</b> GPU BSSN 실험 코드는 별도로 존재하지만, 단일 블랙홀 그림자 유지와 구속식 수렴·쌍성 병합 검증을 통과하지 못해 이 화면에서는 실행하지 않아요. 이 화면은 실시간 PN/EOB 근사이며 정확도 백분율을 보장하지 않아요.</li>
+        </ul>
+        <p class="src">근거: 「Introduction to Numerical Relativity」(김윤수, 2026 수치상대론 및 중력파 여름학교) 정리본 · Blanchet, Living Rev. Relativ. 17, 2 (2014) · Mirshekari, arXiv:1308.5240 · <a href="https://arxiv.org/abs/gr-qc/0001013" target="_blank" rel="noopener">Buonanno &amp; Damour 2000, PRD 62 064015</a> · Bozza 2002 · arXiv:1508.07250 · PRD 84, 124052 · PRD 73, 064030 · 참고 구현: LiranOG/VORTEX, guruprasadregar1-afk/blackhole-physics</p>
+      </aside>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>하늘에서 발견하고, 데이터로 살펴보세요</h2>
+    <p>하늘 탐색 → 천체 선택 → SPHEREx 분석. 선택한 천체의 좌표가 분석 작업실로 이어집니다.</p>
+    <div class="cards">
+      <a class="card" href="./planetarium/"><small>01 · Explore</small><h3>플라네타리움</h3><p>관측 위치와 시간을 바꾸며 하늘을 둘러보고, 별이나 천체를 선택하세요.</p></a>
+      <a class="card" href="./planetarium/?view=allsky"><small>02 · All sky</small><h3>전천 지도</h3><p>360° 하늘을 한눈에 펼쳐 보고, 적경·적위로 관심 있는 영역을 찾아보세요.</p></a>
+      <a class="card" href="./analysis/"><small>03 · Analyze</small><h3>SPHEREx 분석</h3><p>공개 관측 자료를 검색하고, 사용 가능한 영상의 시간·파장별 차이를 살펴보세요.</p></a>
+    </div>
+  </section>
+  <footer>데이터: NASA/IPAC Infrared Science Archive (IRSA) · SPHEREx · NASA/JPL-Caltech</footer>
+</div>
+
+<script src="bbh-physics.js"></script>
+<script src="bbh-eob.js"></script>
+<script src="bbh-sim.js"></script>
+<script src="gravity-hero.js"></script>
+<script>
+"use strict";
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const canvas = $("sky"), hero = $("hero"), hint = $("hint"), credit = $("credit");
+  const wave = $("wave"), stageEl = $("stage"), noteEl = $("stage-note"), valEl = $("stage-val"), wc = $("wave-canvas");
+  const SKY = {
+    spherex: "<em>배경</em> SPHEREx 전천 별 지도 · 우리은하 중심부 (NASA/JPL-Caltech)",
+    dr1: "<em>배경</em> SPHEREx DR1 · 우리은하 중심부 (NASA/JPL-Caltech/IPAC)",
+    placeholder: "<em>배경</em> 임시: 적외선 전천 이미지(2MASS로 추정, 출처 확인 필요) · DR1 아님",
+    procedural: "<em>배경</em> 임시: 코드로 그린 우리은하 · DR1 아님",
+    file: "<em>배경</em> 직접 불러온 이미지",
+  };
+
+  /* waveform strip: the loudest source's h₊ = 2A/D and h× = 2B/D (face-on observer), last ~0.75 s of physics time */
+  const wctx = wc.getContext("2d");
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  wc.width = 276 * dpr; wc.height = 56 * dpr;
+  let shown = false, hideTimer = 0, lastDraw = 0, norm = 1e-9, lastWaveSlot=null;
+  function drawWave(slot) {
+    const W = wc.width, H = wc.height, n = 180, HIST = slot.buf.length / 2;
+    let peak = 0;
+    for (let i = 0; i < n; i++) {
+      const k = (((slot.head - i) % HIST) + HIST) % HIST;
+      peak = Math.max(peak, Math.abs(slot.buf[2 * k]), Math.abs(slot.buf[2 * k + 1]));
+    }
+    norm = Math.max(peak, norm * 0.985);
+    wctx.clearRect(0, 0, W, H);
+    wctx.strokeStyle = "rgba(238,242,248,0.12)"; wctx.lineWidth = 1;
+    wctx.beginPath(); wctx.moveTo(0, H / 2); wctx.lineTo(W, H / 2); wctx.stroke();
+    for (const [off, col] of [[0, "#9cd4ff"], [1, "rgba(200,166,255,0.85)"]]) {
+      wctx.strokeStyle = col; wctx.lineWidth = 1.4 * dpr; wctx.beginPath();
+      let started = false;
+      for (let i = 0; i < n; i++) {
+        const back = n - 1 - i;
+        if (back > slot.head) continue;
+        const k = (((slot.head - back) % HIST) + HIST) % HIST;
+        const v = slot.buf[2 * k + off] / (norm * 1.08);
+        const x = (i / (n - 1)) * W, y = H / 2 - v * (H / 2 - 3);
+        started ? wctx.lineTo(x, y) : wctx.moveTo(x, y);
+        started = true;
+      }
+      wctx.stroke();
+    }
+  }
+  function onStage(info) {
+    const now = performance.now();
+    if (!info) {
+      if(shown&&lastWaveSlot&&now-lastDraw>66){drawWave(lastWaveSlot);lastDraw=now;}
+      if (shown && !hideTimer) hideTimer = setTimeout(() => { wave.classList.remove("on"); shown = false; hideTimer = 0; }, 1200);
+      return;
+    }
+    clearTimeout(hideTimer); hideTimer = 0;
+    if (!shown) { shown = true; norm = 1e-9; wave.classList.add("on"); }
+    lastWaveSlot=info.slot;
+    if (now - lastDraw < 66) return;
+    lastDraw = now;
+    stageEl.className = info.stage;
+    // short model note (may be ellipsised) + a number that is never cut off
+    let note = "", val = "";
+    if (info.stage === "inspiral") {
+      stageEl.textContent = "INSPIRAL";
+      note = info.gas ? "원반 마찰 + 2.5PN 반작용" : "2.5PN 중력파 반작용";
+      val = `간격 ${info.rM.toFixed(1)} M`;
+    } else if (info.stage === "plunge") {
+      stageEl.textContent = "EOB PLUNGE";
+      note = "2PN EOB + 선도 복사 토크";
+      val = `${info.rM.toFixed(1)} M`;
+    } else if (info.stage === "merger") {
+      stageEl.textContent = "MERGER";
+      note = "NR 피팅 · 그림자 연결은 근사";
+    } else {
+      stageEl.textContent = "RINGDOWN";
+      const e = info.ev;
+      note = e ? `QNM 피팅 · 잔해 ${(e.Mf / e.M).toFixed(3)} M` : "QNM 피팅";
+      val = e ? `스핀 ${e.af.toFixed(2)}` : "";
+    }
+    noteEl.textContent = note; noteEl.title = note; valEl.textContent = val;
+    drawWave(info.slot);
+  }
+
+  let gh = null;
+  try {
+    gh = new GravityHero(canvas, {
+      host: hero,
+      onReady: () => canvas.classList.add("ready"),
+      onBackground: (kind) => { credit.innerHTML = SKY[kind] || SKY.file; },
+      onStage,
+    });
+    if (gh.failed) gh = null;
+  } catch (err) {
+    console.warn("[hero] WebGL unavailable, static background only", err);
+    gh = null;
+  }
+  if (!gh) credit.innerHTML = "<em>배경</em> WebGL을 쓸 수 없어 정적 배경만 표시";
+  window.__hero = gh;
+  if (gh) gh.onInteract = () => hint.classList.add("used");
+
+  // model & sources panel
+  const btn = $("model-btn"), panel = $("model");
+  btn.addEventListener("click", () => {
+    const open = panel.hidden;
+    panel.hidden = !open;
+    btn.setAttribute("aria-expanded", String(open));
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !panel.hidden) {
+      panel.hidden = true;
+      btn.setAttribute("aria-expanded", "false");
+      btn.focus();
+    }
+  });
+
+  // Separate pages release the landing renderer; a cached Back restores it.
+  window.addEventListener("pagehide", () => gh?.setActive(false));
+  window.addEventListener("pageshow", () => gh?.setActive(true));
+  window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", (event) => {
+    if (!gh) return;
+    gh.reduce = event.matches;
+    gh.setActive(true);
+  });
+})();
+</script>
+</body>
+</html>

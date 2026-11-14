@@ -1,0 +1,65 @@
+{
+ "pass": true,
+ "c": 338.82352941176464,
+ "sourceTime": 2.4,
+ "frontRadius": 135.52941176470583,
+ "checks": [
+  {
+   "radius": 60,
+   "emittedAt": 2.2229166666666664,
+   "shouldArrive": true,
+   "delta": 23,
+   "pass": true
+  },
+  {
+   "radius": 120,
+   "emittedAt": 2.0458333333333334,
+   "shouldArrive": true,
+   "delta": 11,
+   "pass": true
+  },
+  {
+   "radius": 180,
+   "emittedAt": 1.86875,
+   "shouldArrive": false,
+   "delta": 0,
+   "pass": true
+  },
+  {
+   "radius": 250,
+   "emittedAt": 1.6621527777777776,
+   "shouldArrive": false,
+   "delta": 0,
+   "pass": true
+  }
+ ],
+ "latePacket": {
+  "sourceTime": 6.4,
+  "lastEmission": 2.8,
+  "historyPeak": 1,
+  "currentPeak": 0.013156542237201536,
+  "checks": [
+   {
+    "radius": 260,
+    "emittedAt": 3.1500000000000004,
+    "shouldArrive": false,
+    "delta": 0,
+    "pass": true
+   },
+   {
+    "radius": 320,
+    "emittedAt": 2.4000000000000004,
+    "shouldArrive": true,
+    "delta": 4,
+    "pass": true
+   },
+   {
+    "radius": 390,
+    "emittedAt": 1.5250000000000004,
+    "shouldArrive": false,
+    "delta": 0,
+    "pass": true
+   }
+  ]
+ }
+}

@@ -1,0 +1,142 @@
+// AI-assisted code (Claude) written during NASA Space Apps Challenge 2026. See AI_USE.md.
+// Strings of the Asteroid tab (English default, Korean toggle). Registered with the app dictionary on import.
+import { registerStrings } from '../i18n';
+
+export const asteroidStringsEn: Record<string, string> = {
+  'astro.title': 'Asteroids measured with SPHEREx',
+  'astro.intro':
+    'This project measured these asteroids on real SPHEREx exposures. Pick one: the reflectance, the class comparison and the heat model below are recomputed in your browser from the measured points.',
+  'astro.pick': 'Asteroid',
+  'astro.loading': 'Loading the measured points…',
+  'astro.loadError': 'Could not load the asteroid data: {e}',
+  'astro.lightcurve': 'Divide out the fitted rotation (light curve)',
+  'astro.lightcurve.none': 'No light-curve fit exists for this asteroid, so its rotation scatter stays in the points.',
+  'astro.visit': 'Visit in the heat plot',
+  'astro.visitOpt': 'Visit {v}: {from} to {to}',
+  'astro.provenance': 'Provenance',
+  'astro.facts': 'Catalogue facts',
+  'astro.fact.type': 'Taxonomic type',
+  'astro.fact.diameter': 'Diameter',
+  'astro.fact.albedo': 'Geometric albedo (V)',
+  'astro.fact.H': 'Absolute magnitude H',
+  'astro.fact.G': 'Slope parameter G',
+  'astro.fact.period': 'Rotation period',
+  'astro.na': 'not available',
+  'astro.gAssumed': 'not available (0.15 assumed in the calculations)',
+  'astro.fact.source': 'source: {s}',
+  'astro.tpl.best': '{cls} class mean (closest)',
+  'astro.tpl.next': '{cls} class mean (next group)',
+  'astro.class.consistent': 'The reflectance is consistent with the {g} group of Bus-DeMeo classes.',
+  'astro.class.agrees': 'This agrees with the catalogue type {c}.',
+  'astro.class.differs': 'The catalogue type is {c} ({cg}); the two differ, so treat both with care.',
+  'astro.class.refusedNote': 'No group is claimed. The two closest class means are drawn for comparison only. Catalogue type: {c}.',
+  'astro.explain.refl.title': 'What a reflectance spectrum tells',
+  'astro.explain.refl':
+    'An asteroid has no light of its own at these short wavelengths: it reflects sunlight. Dividing the measured brightness by the Sun\'s spectrum leaves the colour of the surface, its reflectance. Rock-forming minerals leave dips in it: olivine and pyroxene absorb near 1 micron, and pyroxene again near 2 microns. Bus-DeMeo classes (DeMeo et al. 2009) group asteroids whose 0.45-2.45 micron reflectance spectra look alike, so a match says the surface is consistent with the asteroids of that group.',
+  'astro.explain.heat.title': 'Why an asteroid glows on its own beyond about 3.5 µm',
+  'astro.explain.heat':
+    'Sunlight warms the surface to roughly 200-300 K, and anything that warm glows in the infrared. Beyond about 3.5 microns this heat glow grows steeply and soon outshines the reflected sunlight; the darker and closer to the Sun the asteroid is, the earlier. The Standard Thermal Model of Lebofsky et al. (1986) describes this glow with a fixed beaming parameter η = 0.756; its near-Earth asteroid variant (NEATM, Harris 1998) lets η vary, and is drawn here as a band for η 0.8-1.2, with the catalogue size and albedo.',
+  'astro.limits': 'Limits',
+  'astro.limit.rotation':
+    'Each colour was observed at a different time, over days and two visits months apart. The asteroid spins meanwhile, so its rotation adds scatter that can look like spectral structure.',
+  'astro.limit.groups': 'Classes are groups of similar spectra, not compositions. A match means "consistent with", never "made of".',
+  'astro.limit.range': 'Reflectance is shown only up to 2.45 µm, because the asteroid\'s own heat is not subtracted from it.',
+  'astro.limit.errors': 'The archive errors are formal; a 3 % error floor is added for the class comparison.',
+  'astro.eta.ok': 'Visit {v}: beaming parameter η = {e} ± {s} (formal error only; the uncertain reflected continuum under the heat glow dominates the real error)',
+  'astro.eta.refused': 'Visit {v}: no thermal fit. {r}',
+  'astro.thermal.na': 'Heat plot not available: {r}.',
+  'astro.thermal.how':
+    'Heat plot for visit {v}: reflected sunlight is the H-G prediction scaled to the measured 1.7-2.45 µm points; measured points are moved to the visit\'s median distance from SPHEREx.',
+  'astro.sso.title': 'Solar System objects in this field',
+  'astro.sso.hint': 'Switch on the "Asteroids" overlay of the viewer to look up the known asteroids and comets of each visit (IMCCE SkyBoT).',
+  'astro.sso.turnOn': 'Switch on the overlay',
+  'astro.sso.noField': 'Open a field first; its known Solar System objects will be listed here.',
+  'astro.sso.waiting': 'Looking up known objects… SkyBoT takes a few seconds per visit.',
+  'astro.sso.visit': 'Visit {v} ({date})',
+  'astro.sso.none': 'SkyBoT lists no known object in the field at this time.',
+  'astro.sso.col.name': 'Name',
+  'astro.sso.col.class': 'Class',
+  'astro.sso.col.v': 'V mag',
+  'astro.sso.col.motion': 'Motion (″/h)',
+  'astro.sso.col.dist': 'Distance (au)',
+  'astro.sso.smear':
+    'A visit spans days and asteroids move tens of arcseconds per hour, so a per-visit stack smears a moving object into a faint streak or loses it. Single exposures (the "Colour sweep" sequence) show it as a dot that jumps from frame to frame.',
+  'astro.sso.observer':
+    'Positions are predicted by IMCCE SkyBoT for the Earth\'s centre and shifted to SPHEREx with the spacecraft position in a loaded image header (up to about 10″ / distance in au).',
+  'astro.notes.measured': 'Measured: {s}',
+};
+
+export const asteroidStringsKo: Record<string, string> = {
+  'astro.title': 'SPHEREx로 측정한 소행성',
+  'astro.intro':
+    '이 프로젝트가 실제 SPHEREx 노출에서 직접 측정한 소행성입니다. 하나를 고르면 아래의 반사율, 분류 비교, 열 모형이 측정점으로부터 브라우저에서 다시 계산됩니다.',
+  'astro.pick': '소행성',
+  'astro.loading': '측정점을 불러오는 중…',
+  'astro.loadError': '소행성 자료를 불러오지 못했습니다: {e}',
+  'astro.lightcurve': '맞춘 자전 변광(광도곡선) 나누기',
+  'astro.lightcurve.none': '이 소행성은 광도곡선 맞춤이 없어 자전에 따른 흩어짐이 측정점에 남아 있습니다.',
+  'astro.visit': '열 그래프에 쓸 방문',
+  'astro.visitOpt': '방문 {v}: {from} ~ {to}',
+  'astro.provenance': '자료 출처',
+  'astro.facts': '목록 정보',
+  'astro.fact.type': '분광형',
+  'astro.fact.diameter': '지름',
+  'astro.fact.albedo': '기하 알베도 (V)',
+  'astro.fact.H': '절대등급 H',
+  'astro.fact.G': '기울기 매개변수 G',
+  'astro.fact.period': '자전 주기',
+  'astro.na': '정보 없음',
+  'astro.gAssumed': '정보 없음 (계산에는 0.15를 가정)',
+  'astro.fact.source': '출처: {s}',
+  'astro.tpl.best': '{cls} 분류 평균 (가장 가까움)',
+  'astro.tpl.next': '{cls} 분류 평균 (다음 그룹)',
+  'astro.class.consistent': '반사율이 Bus-DeMeo 분류의 {g} 그룹과 부합합니다.',
+  'astro.class.agrees': '목록의 분광형 {c}와 일치합니다.',
+  'astro.class.differs': '목록의 분광형은 {c} ({cg})로 서로 다르므로 둘 다 조심해서 보아야 합니다.',
+  'astro.class.refusedNote': '그룹을 제시하지 않습니다. 가장 가까운 두 분류 평균은 비교용으로만 그렸습니다. 목록 분광형: {c}.',
+  'astro.explain.refl.title': '반사 스펙트럼이 알려 주는 것',
+  'astro.explain.refl':
+    '이 짧은 파장에서 소행성은 스스로 빛나지 않고 햇빛을 반사합니다. 측정한 밝기를 태양 스펙트럼으로 나누면 표면의 색, 곧 반사율이 남습니다. 암석을 이루는 광물은 여기에 골을 남깁니다. 감람석과 휘석은 1 마이크로미터 근처에서, 휘석은 2 마이크로미터 근처에서 한 번 더 빛을 흡수합니다. Bus-DeMeo 분류(DeMeo et al. 2009)는 0.45-2.45 마이크로미터 반사 스펙트럼이 닮은 소행성끼리 묶은 것이므로, 일치한다는 것은 표면이 그 그룹의 소행성들과 부합한다는 뜻입니다.',
+  'astro.explain.heat.title': '약 3.5 µm보다 긴 파장에서 소행성이 스스로 빛나는 이유',
+  'astro.explain.heat':
+    '햇빛이 표면을 대략 200-300 K로 데우고, 그만큼 따뜻한 물체는 적외선으로 빛납니다. 약 3.5 마이크로미터를 넘으면 이 열복사가 가파르게 늘어 곧 반사된 햇빛보다 밝아지며, 어둡고 태양에 가까운 소행성일수록 더 일찍 그렇게 됩니다. Lebofsky et al. (1986)의 표준 열 모형은 이 빛을 고정된 빔밍 매개변수 η = 0.756으로 설명합니다. 근지구 소행성용 변형(NEATM, Harris 1998)은 η를 바꿀 수 있게 했고, 여기서는 목록의 크기와 알베도로 η 0.8-1.2 범위의 띠로 그렸습니다.',
+  'astro.limits': '한계',
+  'astro.limit.rotation':
+    '파장마다 서로 다른 시각에, 며칠에 걸쳐, 몇 달 떨어진 두 방문에서 관측했습니다. 그동안 소행성이 자전하므로 그 변광이 흩어짐으로 더해져 스펙트럼 특징처럼 보일 수 있습니다.',
+  'astro.limit.groups': '분류는 스펙트럼이 비슷한 무리일 뿐 성분이 아닙니다. 일치는 "부합한다"는 뜻이지 "무엇으로 이루어졌다"는 뜻이 아닙니다.',
+  'astro.limit.range': '소행성 자체의 열을 빼지 않았으므로 반사율은 2.45 µm까지만 보여 줍니다.',
+  'astro.limit.errors': '아카이브 오차는 형식적인 값이므로 분류 비교에는 3 % 오차 하한을 더했습니다.',
+  'astro.eta.ok': '방문 {v}: 빔밍 매개변수 η = {e} ± {s} (형식 오차만 포함. 실제 오차는 열복사 아래 반사광 연속선의 불확실성이 좌우함)',
+  'astro.eta.refused': '방문 {v}: 열 맞춤 없음. {r}',
+  'astro.thermal.na': '열 그래프를 그릴 수 없습니다: {r}.',
+  'astro.thermal.how':
+    '방문 {v}의 열 그래프: 반사된 햇빛은 H-G 예측을 측정한 1.7-2.45 µm 점에 맞춰 키운 것이고, 측정점은 그 방문의 SPHEREx 거리 중앙값으로 옮겼습니다.',
+  'astro.sso.title': '이 시야의 태양계 천체',
+  'astro.sso.hint': '뷰어의 "소행성" 오버레이를 켜면 방문마다 알려진 소행성과 혜성을 찾아봅니다 (IMCCE SkyBoT).',
+  'astro.sso.turnOn': '오버레이 켜기',
+  'astro.sso.noField': '먼저 시야를 여세요. 그 시야의 알려진 태양계 천체가 여기에 나옵니다.',
+  'astro.sso.waiting': '알려진 천체를 찾는 중… SkyBoT는 방문마다 몇 초 걸립니다.',
+  'astro.sso.visit': '방문 {v} ({date})',
+  'astro.sso.none': '이 시각 이 시야에는 SkyBoT가 아는 천체가 없습니다.',
+  'astro.sso.col.name': '이름',
+  'astro.sso.col.class': '종류',
+  'astro.sso.col.v': 'V 등급',
+  'astro.sso.col.motion': '움직임 (″/h)',
+  'astro.sso.col.dist': '거리 (au)',
+  'astro.sso.smear':
+    '한 방문은 며칠에 걸치고 소행성은 시간당 수십 각초를 움직이므로, 방문별 합성 영상에서는 움직이는 천체가 흐린 줄로 번지거나 사라집니다. 단일 노출("색 훑기" 순서)에서는 프레임마다 뛰어 옮겨 가는 점으로 보입니다.',
+  'astro.sso.observer':
+    '위치는 IMCCE SkyBoT가 지구 중심 기준으로 예측한 값이며, 불러온 영상 헤더의 우주선 위치로 SPHEREx 기준으로 옮겼습니다 (최대 약 10″ / au 단위 거리).',
+  'astro.notes.measured': '측정: {s}',
+  // Korean versions of core/solar THERMAL_NOTES (same order).
+  'astro.tnote.0': '빔밍 매개변수 η는 모양, 자전, 표면 거칠기를 모두 흡수하는 유효 값이며 표면의 성질이 아닙니다.',
+  'astro.tnote.1': '열복사의 짧은 파장 쪽(빈 영역)에서는 η가 20 % 달라지면 4-5 µm 플럭스가 약 2배 달라집니다.',
+  'astro.tnote.2': 'STM(η 0.756)은 10 µm에서 맞춘 모형이라 세레스의 4.8 µm 플럭스를 약 60 % 높게 예측합니다. 비교용으로만 씁니다.',
+  'astro.tnote.3': '태양에서 약 90도 떨어져 보이는 주 소행성대 천체는 보통 η = 1.0 ± 0.2 (WISE), 근지구 소행성은 1.0-1.8입니다.',
+  'astro.tnote.4': '열복사 아래의 반사광은 그 파장에서 잴 수 없어 1.7-2.45 µm에서 외삽하므로, 그 오차가 그대로 η에 들어갑니다.',
+  'astro.tnote.5': 'SPHEREx의 파장마다 관측 시각이 다르므로 자전과 거리 변화가 스펙트럼 구조처럼 보일 수 있습니다.',
+  'astro.tnote.6': '세레스, 팔라스, 베스타 등 V 12등급보다 밝은 소행성은 SPHEREx에서 포화되어 측정점을 믿을 수 없습니다.',
+};
+
+registerStrings('en', asteroidStringsEn);
+registerStrings('ko', asteroidStringsKo);

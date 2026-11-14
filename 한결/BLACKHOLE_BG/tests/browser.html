@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><base href="../"><title>블랙홀 브라우저 검증</title>
+<style>
+body{margin:0;background:#080c14;color:#dfebff;font:14px system-ui,sans-serif}header,footer{padding:16px 24px}h1{font-size:19px;margin:0 0 10px}button,select{background:#1b2941;color:#eaf3ff;border:1px solid #516782;border-radius:8px;padding:9px;margin:4px;cursor:pointer}#host{position:relative;width:100%;height:100svh;min-height:360px;overflow:hidden}canvas{display:block;width:100%;height:100%}pre{white-space:pre-wrap;line-height:1.7;font-size:13px;margin:0}p{color:#9db0cb;margin:8px 0}
+</style></head><body>
+<header><h1>방정식 기반 블랙홀 · 브라우저 검증</h1>
+<button id="restart">병합 다시 실행</button><button id="pause">일시 정지</button><button id="resize">폭 720px로 변경</button>
+<button id="optics">병합 끝 렌즈 연결 검사</button>
+<select id="scene" aria-label="충돌 조건"><option value="orbit">질량비 3:2 · 비스듬한 접근</option><option value="headon">정면 접근</option><option value="large">4회 병합 잔해 자동 퇴장</option><option value="overlap">드래그로 완전히 겹침</option></select>
+<p>PN → 2PN EOB → NR 피팅 링다운. 3M 이후 그림자 연결은 광학적 근사이며 수치상대론 지평선 계산이 아닙니다.</p></header>
+<section id="host"><canvas id="sky"></canvas></section>
+<footer><pre id="report" role="status">배경 로딩 중…</pre></footer>
+<script src="bbh-physics.js"></script><script src="bbh-eob.js"></script><script src="bbh-sim.js"></script><script src="gravity-hero.js"></script>
+<script>
+const host=document.querySelector('#host'),report=document.querySelector('#report');
+const exitSeen=new Set(),rendered=[],samples=[],stages=new Set(),phaseFrames=new Map();let last=0,started=performance.now(),updates=0,narrow=false,paused=false,unit0,peakPhysicsMs=0,peakDrawMs=0,lastRendered=0;
+class AuditHero extends GravityHero {
+ _seed() {}
+ _draw(t){const now=performance.now();if(lastRendered&&now-started>1000&&rendered.length<1200)rendered.push(now-lastRendered);lastRendered=now;super._draw(t);}
+}
+const hero=new AuditHero(document.querySelector('#sky'),{host,onStage(info){
+  const now=performance.now();
+  const interval=last?now-last:0;
+  if(last&&now-started>1000&&samples.length<1200)samples.push(interval);last=now;
+  for(const b of hero.sim.bodies)if(b.retiring)exitSeen.add(b.retiring);
+  if(info)stages.add(info.stage);
+  if(last&&info&&now-started>1000){const a=phaseFrames.get(info.stage)||[];if(a.length<600)a.push(interval);phaseFrames.set(info.stage,a);}
+  if(now-started>1000){peakPhysicsMs=Math.max(peakPhysicsMs,hero.timings.stepMs);peakDrawMs=Math.max(peakDrawMs,hero.timings.drawMs);}
+  if(++updates%20)return;
+  const sorted=[...samples].sort((a,b)=>a-b),n=sorted.length;
+  const mean=n?samples.reduce((s,x)=>s+x,0)/n:0;
+  const finite=hero.sim.components().every(q=>Number.isFinite(q.x+q.y+q.M+q.rho));
+  report.textContent=JSON.stringify({stage:info?.stage||'isolated',stages:[...stages],phaseP95Ms:Object.fromEntries([...phaseFrames].map(([k,a])=>[k,+[...a].sort((x,y)=>x-y)[Math.floor(.95*(a.length-1))].toFixed(2)])),mergers:hero.sim.events.length,retirementsObserved:exitSeen.size,population:hero.sim.bodies.length,retiring:hero.sim.bodies.filter(b=>b.retiring).length,drawCount:hero.timings.drawCount,peakPhysicsMs:+peakPhysicsMs.toFixed(2),peakDrawSubmissionMs:+peakDrawMs.toFixed(2),
+    renderMeanMs:rendered.length?+(rendered.reduce((s,x)=>s+x,0)/rendered.length).toFixed(2):0,renderSamples:rendered.length,physicsTime:+hero.sim.t.toFixed(3),finite,frameSamples:n,meanMs:+mean.toFixed(2),p95Ms:n?+sorted[Math.floor(.95*(n-1))].toFixed(2):0,
+    maxMs:n?+sorted[n-1].toFixed(2):0,unitsUnchanged:hero.C===unit0.c&&hero.R1===unit0.r1,
+    size:[hero.w,hero.h],drawingBuffer:[hero.canvas.width,hero.canvas.height],c:hero.C},null,2);
+}});
+unit0={c:hero.C,r1:hero.R1};
+function reset(){
+  const sim=hero.sim=new BBHSim({c:hero.C,eob:true,hist:hero.HIST}),mode=document.querySelector('#scene').value;
+  const M=4,x=host.clientWidth*.58,y=host.clientHeight*.5,d=mode==='overlap'?0:15*M;
+  const vy=mode==='orbit'?30:0;
+  if(mode==='large'){let b=sim.add(x,y,0,0,2);for(let n=0;n<4;n++){b=sim._merge(b,sim.add(x+1,y,0,0,1));b.rho=b.morph.rhoF;b.morph=null;}}
+  else {sim.add(x-.4*d,y,mode==='headon'?15:0,vy,2.4);
+  sim.add(x+.6*d,y,mode==='headon'?-22.5:0,-1.5*vy,1.6);}
+  hero.MAX_BH=1;hero.spawnAt.length=0;hero.seenEvents=0;hero.slow=1;
+  exitSeen.clear();rendered.length=0;lastRendered=0;samples.length=0;stages.clear();phaseFrames.clear();last=0;peakPhysicsMs=peakDrawMs=0,lastRendered=0;started=performance.now();
+  if(!paused)hero.setActive(true);
+}
+reset();
+document.querySelector('#restart').onclick=reset;
+document.querySelector('#scene').onchange=reset;
+document.querySelector('#pause').onclick=e=>{paused=!paused;hero.setActive(!paused);e.target.textContent=paused?'다시 재생':'일시 정지';last=0;};
+document.querySelector('#resize').onclick=e=>{narrow=!narrow;host.style.width=narrow?'720px':'100%';e.target.textContent=narrow?'전체 폭으로 변경':'폭 720px로 변경';};
+document.querySelector('#optics').onclick=()=>{
+  paused=true;hero.setActive(false);document.querySelector('#pause').textContent='다시 재생';
+  const sim=hero.sim=new BBHSim({c:hero.C,eob:true,hist:hero.HIST}),x=host.clientWidth*.55,y=host.clientHeight*.5;
+  sim.add(x-30,y,0,30,2.4);sim.add(x+30,y,0,-45,1.6);
+  for(let i=0;i<10000&&!sim.events.length;i++)sim.step(1/240);
+  const R=sim.events[0]?.remnant;
+  if(!R?.morph){report.textContent='FAIL: 병합에 도달하지 못함';return;}
+  R.morph.t=6*R.morph.tauS;
+  const gl=hero.gl,sx=hero.canvas.width/hero.w,sy=hero.canvas.height/hero.h;
+  const X=Math.max(0,Math.round((R.x-70)*sx)),Y=Math.max(0,Math.round((hero.h-R.y-70)*sy));
+  const W=Math.min(Math.round(140*sx),hero.canvas.width-X),H=Math.min(Math.round(140*sy),hero.canvas.height-Y);
+  const before=new Uint8Array(W*H*4),after=new Uint8Array(W*H*4),t=hero.now();
+  hero._draw(t);gl.readPixels(X,Y,W,H,gl.RGBA,gl.UNSIGNED_BYTE,before);
+  R.rho=R.morph.rhoF;R.morph=null;
+  hero._draw(t);gl.readPixels(X,Y,W,H,gl.RGBA,gl.UNSIGNED_BYTE,after);
+  let sum=0,large=0;
+  for(let i=0;i<before.length;i+=4){let d=0;for(let c=0;c<3;c++){const e=Math.abs(before[i+c]-after[i+c]);sum+=e;d=Math.max(d,e);}if(d>24)large++;}
+  const mean=sum/(W*H*3),fraction=large/(W*H);
+  report.textContent=JSON.stringify({test:'actual WebGL pixels: retiring two components → one remnant',pass:mean<2&&fraction<.03,
+    meanChannelDifference:+mean.toFixed(4),fractionPixelsOver24:+fraction.toFixed(5),pixels:W*H,glError:gl.getError()},null,2);
+};
+</script></body></html>

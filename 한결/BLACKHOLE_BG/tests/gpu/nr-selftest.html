@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>NR self-test</title>
+<style>body{font:13px ui-monospace,monospace;background:#0b0d12;color:#d8dee9;margin:16px}pre{white-space:pre-wrap}</style></head>
+<body>
+<p>GPU numerical-relativity self-test. Open from a local server; results print below (also <code>window.results</code>).</p>
+<pre id="out"></pre>
+<script src="../../bbh-nr-id.js"></script>
+<script src="../../bbh-nr.js"></script>
+<script>
+"use strict";
+const log = (s) => { document.getElementById("out").textContent += s + "\n"; };
+function ctx() { const c = document.createElement("canvas"); c.width = c.height = 4; return c.getContext("webgl2"); }
+
+// Exact static Schwarzschild (isotropic, M = 1): every BSSN time derivative must vanish up to truncation error.
+function staticRHS(N) {
+  const gl = ctx(), nr = new BBHNR(gl, { N, L: 10 });
+  nr.writeState((x, y, z) => {
+    const r = Math.hypot(x, y, z), q = 1 / (2 * r), psi = 1 + q;
+    return [1, 0, 0, 1, 0, 1, psi ** -4, (1 - q) / (1 + q), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  });
+  const dt = 1, before = [0, 1, 2, 3, 4, 5].map((k) => nr.read(k)), after = nr.probeRHS(dt);
+  const g = nr.g, m = { K: 0, A: 0, G: 0, chi: 0, al: 0, gt: 0 };
+  for (let k = 0; k < g.NZ; k++) for (let j = 0; j < g.N; j++) for (let i = 0; i < g.N; i++) {
+    const x = -g.L + (i + 0.5) * g.h, y = -g.L + (j + 0.5) * g.h, z = (k + 0.5) * g.h, r = Math.hypot(x, y, z);
+    if (r < 2 || r > 6) continue;
+    const c = nr.cell(i, j, k), f = (t, q) => (after[t][c + q] - before[t][c + q]) / dt;
+    m.K = Math.max(m.K, Math.abs(f(2, 3)));
+    for (const q of [0, 1, 2, 3]) m.A = Math.max(m.A, Math.abs(f(3, q)));
+    m.A = Math.max(m.A, Math.abs(f(4, 0)), Math.abs(f(4, 1)));
+    m.G = Math.max(m.G, Math.abs(f(4, 2)), Math.abs(f(4, 3)), Math.abs(f(5, 0)));
+    m.chi = Math.max(m.chi, Math.abs(f(1, 2))); m.al = Math.max(m.al, Math.abs(f(1, 3)));
+    m.gt = Math.max(m.gt, Math.abs(f(0, 0)), Math.abs(f(0, 1)), Math.abs(f(0, 3)));
+  }
+  return m;
+}
+// shadow radius along +x and +y from a lens map (escape flag crosses ½)
+function shadowRadius(nr, cx = 0, cy = 0) {
+  const R = nr.lensRes, L = nr.g.L, lm = nr.readLens(), rs = [];
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    let prev = null;
+    for (let s = 0; s < L; s += 0.01) {
+      const x = cx + dx * s, y = cy + dy * s;
+      const u = ((x + L) / (2 * L)) * R - 0.5, v = ((y + L) / (2 * L)) * R - 0.5;
+      const i = Math.floor(u), j = Math.floor(v), a = u - i, b = v - j;
+      const e = (ii, jj) => lm[4 * (jj * R + ii) + 2];
+      const esc = (1 - a) * (1 - b) * e(i, j) + a * (1 - b) * e(i + 1, j) + (1 - a) * b * e(i, j + 1) + a * b * e(i + 1, j + 1);
+      if (esc >= 0.5) { rs.push(s); break; }
+    }
+  }
+  return rs;
+}
+function single(N, T) {
+  const gl = ctx(), nr = new BBHNR(gl, { N, L: 10 });
+  nr.writeState((x, y, z) => {
+    const r = Math.hypot(x, y, z), psi = 1 + 1 / (2 * r), a = (2 - psi) / psi, e2 = 0.0016;
+    const al = (a + Math.sqrt(a * a + e2)) / (1 + Math.sqrt(1 + e2));
+    return [1, 0, 0, 1, 0, 1, psi ** -4, al, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  });
+  nr.setPunctures([0, 0, 0, 0]); nr.mode = "nr"; nr.t = 0;
+  nr.trace(1); const r0 = shadowRadius(nr);
+  const t0 = performance.now(); let steps = 0;
+  while (nr.t < T) steps += nr.advance(Math.min(4, T - nr.t), 64);
+  const ms = (performance.now() - t0) / steps;
+  const st = nr.read(1), c = nr.cell(N / 2, N / 2, 0), cf = nr.cell(N / 2 + Math.round(3 / nr.g.h), N / 2, 0);
+  nr.trace(1); const r1 = shadowRadius(nr);
+  return { steps, msPerStep: +ms.toFixed(3), alphaCentre: st[c + 3], alpha3M: st[cf + 3], chi3M: st[cf + 2], shadowT0: r0, shadowT: r1, pos: nr.posNow.map((v) => +v.toFixed(4)) };
+}
+function binary(N, v, T) {
+  const gl = ctx(), nr = new BBHNR(gl, { N, L: 10 });
+  const d = 6.5;
+  const t0 = performance.now();
+  nr.setPair([{ M: 0.5, x: d / 2, y: 0, vx: 0, vy: v }, { M: 0.5, x: -d / 2, y: 0, vx: 0, vy: -v }], { solve: true });
+  const tId = performance.now() - t0;
+  nr.trace(1); const sh0 = shadowRadius(nr, d / 2, 0);
+  const out = { tId: +tId.toFixed(1), samples: [], merged: null };
+  let steps = 0; const t1 = performance.now(); let traceMs = 0;
+  while (nr.t < T) {
+    steps += nr.advance(1.0, 64);
+    const [x1, y1, x2, y2] = nr.posNow, sep = Math.hypot(x1 - x2, y1 - y2);
+    if (!Number.isFinite(sep)) { out.nan = nr.t; break; }
+    if (out.merged === null && sep < 1) out.merged = +nr.t.toFixed(2);
+    if (Math.round(nr.t) % 5 === 0) {
+      const a = performance.now(); nr.trace(1); traceMs = performance.now() - a;
+      out.samples.push([+nr.t.toFixed(1), +sep.toFixed(3), +Math.atan2(y1 - y2, x1 - x2).toFixed(3)]);
+    }
+    if (out.merged !== null && nr.t > out.merged + 50) break;
+  }
+  out.msPerStep = +((performance.now() - t1) / steps).toFixed(3); out.steps = steps; out.traceMs = +traceMs.toFixed(2);
+  out.shadow0 = sh0; out.bare = nr.id.punctures.map((p) => +p.m.toFixed(4)); out.u = nr.id.ua.map((x) => +x.toFixed(5));
+  nr.trace(1); out.shadowEnd = shadowRadius(nr, (nr.posNow[0] + nr.posNow[2]) / 2, (nr.posNow[1] + nr.posNow[3]) / 2);
+  return out;
+}
+// Deliberately report field survival, not just finite puncture coordinates: a solver
+// can be NaN-free while numerical diffusion erases both black holes.
+async function evolution(N = 64, T = 30, options = {}) {
+  const nr = new BBHNR(ctx(), { N, L: 10, lensRes: 32, ...options });
+  const d = options.d ?? 6.5, v = options.v ?? 0.23;
+  nr.setPair([{ M: 0.5, x: d/2, y: 0, vx: 0, vy: v }, { M: 0.5, x: -d/2, y: 0, vx: 0, vy: -v }], { solve: true });
+  const stats = () => {
+    const s = nr.read(1), k = nr.read(2);
+    let chiMin = Infinity, alphaMin = Infinity, Kmax = 0, invalid = 0;
+    for (let i = 0; i < s.length; i += 4) {
+      chiMin = Math.min(chiMin, nr.g.conformalW ? s[i+2]**2 : s[i+2]); alphaMin = Math.min(alphaMin, s[i+3]);
+      Kmax = Math.max(Kmax, Math.abs(k[i+3]));
+      if (!Number.isFinite(s[i+2]+s[i+3]+k[i+3])) invalid++;
+    }
+    const p = nr.posNow;
+    return { t: nr.t, sep: Math.hypot(p[0]-p[2],p[1]-p[3]), angle: Math.atan2(p[1]-p[3],p[0]-p[2]), chiMin, alphaMin, Kmax, invalid, constraints: nr.constraints() };
+  };
+  const result = [stats()];
+  while (nr.t < T - 1e-8) {
+    nr.advance(Math.min(1, T - nr.t), 64);
+    if (Math.round(nr.t) % 5 === 0 || nr.t >= T - 1e-8) { const s = stats(); result.push(s); console.log(JSON.stringify(s)); }
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
+  return result;
+}
+function flatShear(N = 32) {
+  const nr = new BBHNR(ctx(), { N, L: 10, sigma: 0, lensRes: 8 });
+  // Euclidean space in volume-preserving coordinates X=x+a sin(k y),
+  // Y=y, Z=z. Nontrivial γ and Γ, but R_ij=K_ij=0 exactly.
+  nr.writeState((x,y,z) => {
+    // Keep truncation error above the float32 second-derivative roundoff floor.
+    const s = 0.4*Math.cos(0.8*y), ds = -0.32*Math.sin(0.8*y);
+    const v = new Float64Array(24);
+    v[0]=1; v[1]=s; v[3]=1+s*s; v[5]=v[6]=v[7]=1; v[18]=ds;
+    return v;
+  });
+  nr.setPunctures([0,0,0,0]);
+  const constraints = nr.constraints({excision:0});
+  const before = [nr.read(3),nr.read(4)], after=nr.probeRHS(1);
+  let maxA=0;
+  const g=nr.g;
+  for(let k=0;k<g.NZ;k++)for(let j=0;j<N;j++)for(let i=0;i<N;i++) {
+    const x=-10+(i+.5)*g.h, y=-10+(j+.5)*g.h, z=(k+.5)*g.h;
+    if(Math.hypot(x,y,z)>6)continue;
+    const c=nr.cell(i,j,k);
+    for(let q=0;q<4;q++)maxA=Math.max(maxA,Math.abs(after[3][c+q]-before[0][c+q]));
+    for(let q=0;q<2;q++)maxA=Math.max(maxA,Math.abs(after[4][c+q]-before[1][c+q]));
+  }
+  return {maxA,constraints};
+}
+function vacuumConstraints(N=32, conformalW=false) {
+  const nr=new BBHNR(ctx(),{N,L:10,lensRes:8,conformalW});
+  nr.writeState((x,y,z)=>{
+    const q=1/(2*Math.hypot(x,y,z)),psi=1+q,v=new Float64Array(24);
+    v[0]=v[3]=v[5]=1;v[6]=psi**(conformalW?-2:-4);v[7]=(1-q)/(1+q);return v;
+  });
+  nr.setPunctures([0,0,0,0]);
+  return nr.constraints({excision:2,radius:6});
+}
+async function operators() {
+  const a=staticRHS(32),b=staticRHS(64),shear32=flatShear(32),shear64=flatShear(64);
+  const chi32=vacuumConstraints(32),chi64=vacuumConstraints(64);
+  const w32=vacuumConstraints(32,true),w64=vacuumConstraints(64,true);
+  const checks={staticRHS:b.K<a.K/6&&b.A<a.A/6,curvedFlatMetric:shear64.maxA<shear32.maxA/8,
+    chiConstraintConvergence:chi64.H<chi32.H/6,WConstraintConvergence:w64.H<w32.H/6};
+  return {pass:Object.values(checks).every(Boolean),checks,a,b,shear32,shear64,chi32,chi64,w32,w64};
+}
+window.tests = { staticRHS, single, binary, evolution, flatShear, vacuumConstraints, operators };
+window.addEventListener("load", () => {
+  if (new URLSearchParams(location.search).has("manual")) return;
+  try {
+    const gl = ctx();
+    if (!BBHNR.supported(gl)) { log("NR not supported on this GPU"); return; }
+    log("static Schwarzschild RHS N=32 " + JSON.stringify(staticRHS(32)));
+    log("static Schwarzschild RHS N=64 " + JSON.stringify(staticRHS(64)));
+  } catch (e) { log("ERROR " + e.message); }
+});
+</script>
+</body></html>

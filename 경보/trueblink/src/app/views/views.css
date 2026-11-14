@@ -1,0 +1,57 @@
+/* AI-assisted code (Claude) written during NASA Space Apps Challenge 2026. See AI_USE.md. */
+/* Sky map and 3D stack panels. Colours from tokens.css: amber = time, cyan = wavelength. */
+
+.tbv { display: flex; flex-direction: column; gap: 8px; width: 100%; height: 100%; min-width: 0; min-height: 320px; color: var(--text); font-family: var(--font); }
+.tbv * { box-sizing: border-box; }
+.tbv-stage { position: relative; flex: 1 1 auto; min-height: 260px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--bg); }
+.tbv-stage > .tbv-gl { position: absolute; inset: 0; }
+.tbv-caption { margin: 0; font-size: 0.85rem; line-height: 1.4; color: var(--muted); }
+.tbv-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; min-width: 0; }
+.tbv-group { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; min-width: 0; max-width: 100%; }
+.tbv-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+.tbv-wave { color: var(--accent-wave); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tbv-time { color: var(--accent-time); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tbv-mono { font-family: var(--mono); font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+.tbv-demo { position: absolute; left: 8px; top: 8px; z-index: 4; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; color: var(--bad); border: 1px solid var(--bad); border-radius: 4px; padding: 0 6px; background: color-mix(in srgb, var(--bg) 75%, transparent); pointer-events: none; }
+.tbv-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 32px; min-width: 32px; padding: 3px 10px; border-radius: var(--radius-sm); background: var(--panel-2); border: 1px solid var(--border); color: var(--text); cursor: pointer; font: inherit; font-size: 0.85rem; white-space: nowrap; }
+.tbv-btn:hover:not(:disabled) { border-color: var(--accent); }
+.tbv-btn:disabled { opacity: 0.45; cursor: default; }
+.tbv-btn.primary { background: var(--accent); border-color: var(--accent); color: #0b1020; font-weight: 600; }
+.tbv-seg { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; max-width: 100%; }
+.tbv-seg button { min-height: 30px; padding: 2px 10px; background: var(--panel-2); border: 0; color: var(--text); cursor: pointer; font: inherit; font-size: 0.85rem; white-space: nowrap; }
+.tbv-seg button + button { border-left: 1px solid var(--border); }
+.tbv-seg button.on { background: var(--accent); color: #0b1020; font-weight: 600; }
+.tbv-seg button:disabled { opacity: 0.45; cursor: default; }
+
+/* ---------------------------------------------------------------- sky map */
+.tbv-zoom { position: absolute; right: 8px; top: 8px; z-index: 3; display: flex; flex-direction: column; gap: 4px; }
+.tbv-zoom .tbv-btn { width: 34px; padding: 0; font-size: 1.05rem; background: color-mix(in srgb, var(--panel-2) 88%, transparent); }
+.tbv-cross { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; pointer-events: none; z-index: 2; opacity: 0.55; }
+.tbv-cross::before, .tbv-cross::after { content: ''; position: absolute; background: var(--text); }
+.tbv-cross::before { left: 10px; top: 0; width: 2px; height: 7px; box-shadow: 0 15px 0 var(--text); }
+.tbv-cross::after { top: 10px; left: 0; height: 2px; width: 7px; box-shadow: 15px 0 0 var(--text); }
+.tbv-readout { position: absolute; left: 8px; bottom: 8px; z-index: 3; max-width: calc(100% - 16px); padding: 3px 8px; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--bg) 78%, transparent); font-size: 0.78rem; line-height: 1.35; pointer-events: none; }
+.tbv-readout b { color: var(--muted); font-weight: 500; margin-right: 6px; }
+.tbv-pin { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 5; width: min(360px, calc(100% - 16px)); padding: 10px 12px; border-radius: var(--radius); background: var(--panel); border: 1px solid var(--accent); box-shadow: var(--shadow); }
+.tbv-pin h3 { margin: 0 0 2px; font-size: 0.95rem; }
+.tbv-pin p { margin: 0 0 8px; font-size: 0.8rem; color: var(--muted); }
+.tbv-pin .tbv-mono { display: block; margin-bottom: 8px; color: var(--text); overflow-wrap: anywhere; }
+.tbv-pin .tbv-row { justify-content: flex-end; }
+.tbv-slider { display: grid; grid-template-columns: auto minmax(80px, 1fr) auto; align-items: center; gap: 6px 10px; min-width: 0; }
+.tbv-slider input[type='range'] { width: 100%; min-width: 0; accent-color: var(--accent-wave); }
+.tbv-slider .tbv-wavebox { display: flex; flex-direction: column; align-items: flex-end; min-width: 92px; line-height: 1.2; }
+.tbv-slider .tbv-det { font-size: 0.75rem; color: var(--muted); white-space: nowrap; }
+.tbv-help { font-size: 0.78rem; color: var(--muted); margin: 0; }
+.tbv-nogl { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; padding: 16px; text-align: center; color: var(--muted); }
+.tbv-nogl .tbv-row { justify-content: center; }
+
+/* ---------------------------------------------------------------- 3D stack */
+.tbv-empty { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--muted); background: var(--bg); font-size: 0.9rem; }
+.tbv-hover { min-height: 1.4em; font-size: 0.82rem; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; color: var(--muted); }
+.tbv-track { font-size: 0.8rem; color: var(--muted); margin: 0; }
+.tbv-track::before { content: ''; display: inline-block; width: 14px; height: 3px; margin-right: 6px; vertical-align: middle; border-radius: 2px; background: #ff7a66; }
+
+@media (max-width: 520px) {
+  .tbv-slider { grid-template-columns: auto minmax(60px, 1fr); }
+  .tbv-slider .tbv-wavebox { grid-column: 1 / -1; flex-direction: row; gap: 10px; align-items: baseline; justify-content: flex-start; }
+}

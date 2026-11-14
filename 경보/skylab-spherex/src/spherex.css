@@ -1,0 +1,57 @@
+/* AI-assisted code (Claude) written during NASA Space Apps Challenge 2026. */
+/* Stellarium Web Lab + SPHEREx v1.3.0 — SPDX-License-Identifier: AGPL-3.0-only */
+/* SPHEREx layer card, TrueBlink buttons and the below-horizon notice. Uses the tokens of styles.css. */
+
+.layer-toggle-wide { grid-column: 1 / -1; }
+.blink-button { width: 100%; margin-top: 12px; white-space: normal; text-align: center; line-height: 1.35; }
+.blink-button .icon { width: 17px; height: 17px; }
+.selection-panel .blink-button { margin-top: 16px; }
+
+.spherex-panel { position: absolute; z-index: 18; left: 362px; bottom: 81px; width: 336px; padding: 14px 16px 14px; }
+body.panel-closed .spherex-panel { left: 22px; }
+.spherex-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.spherex-head .eyebrow { margin-bottom: 4px; }
+.spherex-head h2 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -.03em; }
+.spherex-wave { display: grid; grid-template-columns: 28px minmax(0, 1fr) 28px; align-items: center; gap: 8px; margin-top: 12px; }
+.spherex-wave .icon-button { font-size: 20px; line-height: 1; border-color: var(--line); }
+.spherex-wave input[type="range"] { width: 100%; margin: 0; accent-color: var(--cyan); }
+.spherex-wave input:disabled, .spherex-wave button:disabled { opacity: .45; cursor: not-allowed; }
+.spherex-readout { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 8px 0 0; color: #a9bfcb; font-size: 12px; font-variant-numeric: tabular-nums; }
+.spherex-readout strong { color: var(--cyan); font-size: 18px; font-weight: 600; }
+.spherex-note { margin: 8px 0 0; padding: 7px 9px; border: 1px solid #6b5a3a; border-radius: 7px; background: rgba(120, 92, 40, .16); color: #ecd9b0; font-size: 12px; line-height: 1.5; }
+.spherex-caption { margin: 10px 0 0; color: #c9d7de; font-size: 12px; line-height: 1.6; }
+.spherex-credit { margin: 10px 0 0; color: #7f99aa; font-size: 10.5px; line-height: 1.5; }
+.spherex-credit a { color: #91b4c1; }
+.spherex-ack { margin-top: 8px !important; font-size: 11px !important; line-height: 1.6 !important; color: #7f99aa !important; }
+
+.sky-notice { position: absolute; z-index: 60; top: calc(var(--topbar-height) + 22px); left: 50%; transform: translateX(-50%); width: min(460px, calc(100% - 32px)); padding: 14px 16px; border-color: #456c79; }
+.sky-notice p { margin: 0; color: #d9f0ee; font-size: 13px; line-height: 1.6; }
+.sky-notice-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.sky-notice-actions .icon-button { margin-left: auto; }
+
+@media (max-width: 1050px) {
+  .spherex-panel { width: 300px; }
+}
+@media (max-width: 760px) {
+  .spherex-panel { left: 12px; right: 60px; bottom: 81px; width: auto; max-height: 46vh; overflow: auto; padding: 11px 12px; }
+  body.panel-closed .spherex-panel { left: 12px; }
+  body:not(.panel-closed) .spherex-panel { display: none; }
+  .spherex-caption { font-size: 11px; }
+  .spherex-head h2 { font-size: 15px; }
+  .sky-notice { top: calc(var(--topbar-height) + 12px); }
+}
+
+/* All-sky map: the card becomes one bar under the map; the caption and credit move to the map banner. */
+body.allsky-view .spherex-panel { width: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 8px 12px; }
+body.allsky-view .spherex-head { display: contents; }
+body.allsky-view .spherex-head .eyebrow,
+body.allsky-view .spherex-caption,
+body.allsky-view .spherex-credit { display: none; }
+body.allsky-view .spherex-head h2 { order: 1; font-size: 14px; white-space: nowrap; }
+body.allsky-view .spherex-wave { order: 2; flex: 1 1 200px; margin: 0; }
+body.allsky-view .spherex-readout { order: 3; margin: 0; gap: 12px; }
+body.allsky-view .spherex-readout strong { font-size: 15px; }
+body.allsky-view .spherex-panel .blink-button { order: 4; width: auto; margin: 0; min-height: 32px; padding: 5px 10px; }
+body.allsky-view #spherex-close { order: 5; }
+body.allsky-view .spherex-note { order: 6; flex-basis: 100%; }
+.map-banner .map-source { max-width: 720px; line-height: 1.5; }

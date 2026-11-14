@@ -1,0 +1,14 @@
+{
+  "name": "stellarium-web-lab",
+  "version": "1.2.0",
+  "private": true,
+  "type": "module",
+  "description": "A browser-ready Korean Stellarium viewer for the NASA Space Apps project.",
+  "license": "AGPL-3.0-only",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "preview": "node scripts/serve.mjs",
+    "start": "node scripts/build.mjs && node scripts/serve.mjs --open"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "test": "actual WebGL pixels: retiring two components → one remnant",
+  "pass": true,
+  "meanChannelDifference": 0.2973,
+  "fractionPixelsOver24": 0,
+  "pixels": 25281,
+  "glError": 0
+}

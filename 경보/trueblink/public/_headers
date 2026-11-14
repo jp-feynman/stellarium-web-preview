@@ -1,0 +1,32 @@
+# Cloudflare Pages response headers for the static files (Functions under /api set their own).
+# When several rules match a path, Cloudflare joins same-named headers with a comma, so each
+# Cache-Control is set by exactly one rule below. Nothing here restricts cross-origin requests:
+# the browser reads pixels from nasa-irsa-spherex.s3.amazonaws.com, HiPS tiles and catalogues from
+# IRSA, CDS and IMCCE, so do not add Content-Security-Policy connect-src/img-src limits or
+# Cross-Origin-Embedder-Policy here without testing all five targets and the sky view.
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+# Vite puts content-hashed JavaScript and CSS here: a new build gets new names.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Baked exposure lists and pixel bundles: same names after a re-bake, so cache for a day only.
+/presets/*
+  Cache-Control: public, max-age=86400
+
+/data/*
+  Cache-Control: public, max-age=86400
+
+# The page itself must always be revalidated so a new deployment shows up at once.
+/
+  Cache-Control: no-cache
+
+/index.html
+  Cache-Control: no-cache
+
+# The combined site (npm run build:site) also holds the separate sky app under /sky/ (Stellarium Web
+# Lab + SPHEREx, AGPL-3.0). Its files keep the Pages defaults (revalidated on each visit; .wasm is
+# served as application/wasm). /hips/* is a Pages Function (functions/hips) and sets its own headers.

@@ -1,4 +1,4 @@
-name: Publish Stellarium to GitHub Pages
+name: Publish SPHEREx Sky Lab to GitHub Pages
 
 on:
   push:
@@ -17,12 +17,23 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Build static site with bundled WebAssembly engine
+          cache: npm
+          cache-dependency-path: 경보/trueblink/package-lock.json
+      - name: Install locked analysis dependencies
+        run: npm run setup
+      - name: Check site routing and celestial coordinate handoff
+        run: node --test scripts/server.test.mjs '중선/v1.2.0/tests/analysis-target.test.mjs'
+      - name: Build entrance, planetarium and analysis workbench
+        env:
+          # The team's existing public SPHEREx-only relay supports CORS from Pages.
+          # GitHub Pages itself cannot execute a Node /api/sia service.
+          VITE_API_BASE: https://trueblink.pages.dev/api
         run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
