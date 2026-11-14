@@ -15,6 +15,8 @@ import { session, useSessionVersion } from '../session';
 import { useApp } from '../store';
 import { analyseAsteroid, type AsteroidFile } from './analysis';
 import { ASTEROID_INDEX, loadAsteroid } from './data';
+import { JihoAnalysis } from './JihoAnalysis';
+import { jihoStrings } from './jiho-strings';
 import './strings';
 import './asteroid.css';
 
@@ -125,7 +127,7 @@ function SolarSystemSection({ t }: { t: T }) {
   );
 }
 
-export function AsteroidTab() {
+function LegacyAsteroidAnalysis() {
   const t = useT();
   const lang = useLang();
   const [id, setId] = useState(ASTEROID_INDEX[0]?.id ?? '');
@@ -184,7 +186,7 @@ export function AsteroidTab() {
   }
 
   return (
-    <div className="astro" data-testid="asteroid-tab">
+    <div className="astro" data-testid="asteroid-legacy">
       <header className="astro-head">
         <h3>{t('astro.title')}</h3>
         <p className="astro-muted">{t('astro.intro')}</p>
@@ -297,7 +299,20 @@ export function AsteroidTab() {
         </>
       )}
 
-      <SolarSystemSection t={t} />
     </div>
   );
+}
+
+export function AsteroidTab({ initialMode = 'integrated' }: { initialMode?: 'integrated' | 'legacy' } = {}) {
+  const t = useT();
+  const copy = jihoStrings[useLang() === 'ko' ? 'ko' : 'en'];
+  const [mode, setMode] = useState<'integrated' | 'legacy'>(initialMode);
+  return <div className="astro" data-testid="asteroid-tab">
+    <div className="astro-mode-buttons" role="group" aria-label={copy.title}>
+      <button type="button" className="astro-btn" aria-pressed={mode === 'integrated'} onClick={() => setMode('integrated')}>{copy.integrated}</button>
+      <button type="button" className="astro-btn" aria-pressed={mode === 'legacy'} onClick={() => setMode('legacy')}>{copy.legacy}</button>
+    </div>
+    {mode === 'integrated' ? <JihoAnalysis /> : <><p className="astro-note">{copy.originalNote}</p><LegacyAsteroidAnalysis /></>}
+    <SolarSystemSection t={t} />
+  </div>;
 }

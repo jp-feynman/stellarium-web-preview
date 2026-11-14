@@ -4,3 +4,8 @@ dist/
 .site-previous-*/
 *.log
 .DS_Store
+.venv-asteroid/
+.asteroid-jobs/
+.integration-tmp/
+__pycache__/
+.pytest_cache/

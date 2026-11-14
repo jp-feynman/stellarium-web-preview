@@ -2,6 +2,7 @@ import { access, cp, mkdir, readFile, readdir, rename, rm, stat, writeFile } fro
 import { spawnSync } from 'node:child_process';
 import { dirname, extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { exportAsteroidCatalog } from './asteroid-export.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const output = join(root, 'dist');
@@ -37,6 +38,7 @@ if (await exists(output)) await verifyGenerated(output);
 if (await exists(staging) || await exists(previous)) throw new Error('This build has an unfinished staging directory. Inspect it before retrying.');
 if (!(await exists(join(analysis, 'node_modules', 'vite', 'bin', 'vite.js')))) throw new Error('Run npm run setup first to install the analysis dependencies.');
 
+await exportAsteroidCatalog({ projectRoot: root });
 run(join(planetarium, 'scripts', 'build.mjs'), planetarium);
 run(join(analysis, 'node_modules', 'typescript', 'bin', 'tsc'), analysis, ['--noEmit']);
 run(join(analysis, 'node_modules', 'vite', 'bin', 'vite.js'), analysis, ['build'], {
@@ -59,7 +61,7 @@ try {
   }
   await cp(join(root, 'README.md'), join(staging, 'README.md'));
   await writeFile(join(staging, '.nojekyll'), '');
-  await writeFile(join(staging, marker), JSON.stringify({ project: 'spherex-sky-lab', version: '2.2.0', builtAt: new Date().toISOString() }, null, 2) + '\n');
+  await writeFile(join(staging, marker), JSON.stringify({ project: 'spherex-sky-lab', version: '2.3.1', builtAt: new Date().toISOString() }, null, 2) + '\n');
   for (const required of ['index.html', 'planetarium/index.html', 'analysis/index.html', 'planetarium/engine/stellarium-web-engine.wasm']) {
     if (!(await exists(join(staging, required)))) throw new Error(`Missing combined output: ${required}`);
   }
@@ -88,7 +90,7 @@ try {
     }
   }
   await count(output);
-  console.log(`SPHEREx Sky Lab v2.2.0 built: ${files} files, ${(bytes / 1048576).toFixed(1)} MiB.\nRun npm run preview, then open the printed local URL.`);
+  console.log(`SPHEREx Sky Lab v2.3.1 built: ${files} files, ${(bytes / 1048576).toFixed(1)} MiB.\nRun npm run preview, then open the printed local URL.`);
 } catch (error) {
   console.error(`The last successful build is preserved. Inspect incomplete output at ${staging}.`);
   throw error;

@@ -40,7 +40,7 @@ createRoot(document.getElementById('root')!).render(
           DEMO: the Solar System list below is a saved SkyBoT answer for a sample field (2025-06-01, near 12h20m −04°), not an open SPHEREx field. The asteroid spectra are real measurements.
         </div>
       )}
-      <AsteroidTab />
+      <AsteroidTab initialMode="legacy" />
     </main>
   </StrictMode>,
 );

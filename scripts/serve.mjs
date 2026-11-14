@@ -6,6 +6,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawn } from 'node:child_process';
 import { handleRequest } from '../경보/trueblink/scripts/relay.mjs';
 import { handleHips } from '../경보/trueblink/scripts/hips-rewrite.mjs';
+import { createAsteroidApi } from './asteroid-api.mjs';
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const defaultRoot = resolve(projectRoot, 'dist');
@@ -35,9 +36,10 @@ function respond(res, status, text, extraHeaders = {}) {
   res.end(text);
 }
 
-export function createSiteServer({ webRoot = defaultRoot, relay = handleRequest, hips = handleHips } = {}) {
+export function createSiteServer({ webRoot = defaultRoot, relay = handleRequest, hips = handleHips,
+  asteroids = createAsteroidApi({ projectRoot }) } = {}) {
   const root = resolve(webRoot);
-  return createServer(async (req, res) => {
+  const server = createServer(async (req, res) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     try {
       // Check the raw path before URL normalizes dot segments.
@@ -45,6 +47,8 @@ export function createSiteServer({ webRoot = defaultRoot, relay = handleRequest,
       staticPath(root, requestPath);
       const url = new URL(req.url || '/', 'http://localhost');
       const canonicalPath = url.pathname.replace(/^\/analysis\/api(?=\/|$)/, '/api');
+      url.pathname = canonicalPath;
+      if (await asteroids.handle(req, res, url)) return;
       const isApi = canonicalPath === '/api' || canonicalPath.startsWith('/api/');
       const isHips = canonicalPath === '/hips' || canonicalPath.startsWith('/hips/');
       if (isApi || isHips) {
@@ -82,6 +86,8 @@ export function createSiteServer({ webRoot = defaultRoot, relay = handleRequest,
       respond(res, status, status === 404 ? 'Not found.' : status === 400 || status === 403 ? error.message : 'The request could not be completed. Please retry.');
     }
   });
+  server.on('close', () => { void asteroids.close().catch(error => console.error('Asteroid worker cleanup:', error.message)); });
+  return server;
 }
 
 // Try binding directly, rather than probing first: another process can take a
@@ -136,7 +142,7 @@ export async function startSiteServer(args = process.argv.slice(2)) {
   {
     const displayHost = host === '0.0.0.0' ? '127.0.0.1' : host.includes(':') ? `[${host}]` : host;
     const url = `http://${displayHost}:${actualPort}/`;
-    console.log(`SPHEREx Sky Lab v2.2.0\nLocal: ${url}\nPlanetarium: ${url}planetarium/\nAnalysis: ${url}analysis/\nPress Ctrl+C to stop.`);
+    console.log(`SPHEREx Sky Lab v2.3.1\nLocal: ${url}\nPlanetarium: ${url}planetarium/\nAnalysis: ${url}analysis/\nPress Ctrl+C to stop.`);
     if (args.includes('--open')) {
       const executable = process.platform === 'win32' ? 'rundll32.exe' : process.platform === 'darwin' ? 'open' : 'xdg-open';
       const commandArgs = process.platform === 'win32' ? ['url.dll,FileProtocolHandler', url] : [url];
