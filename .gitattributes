@@ -1,5 +1,2 @@
-* text=auto
-*.cmd text eol=crlf
-# Generated engine bytes must match the checked-in build-info.json hashes.
-**/engine/stellarium-web-engine.js -text
-**/engine/stellarium-web-engine.wasm -text
+# Preserve scientific source hashes and binary assets across Windows/Linux.
+* -text

@@ -1,24 +1,18 @@
 import { access, readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { spawnSync } from 'node:child_process';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const analysis = join(root, '경보', 'trueblink');
-const marker = join(analysis, 'node_modules', '.sky-lab-lock');
-const lock = await readFile(join(analysis, 'package-lock.json'));
-const fingerprint = createHash('sha256').update(lock).digest('hex');
-const installed = await access(join(analysis, 'node_modules', 'vite', 'bin', 'vite.js')).then(() => true, () => false);
-const prior = await readFile(marker, 'utf8').catch(() => '');
-if (installed && prior === fingerprint) {
-  console.log('TrueBlink dependencies are ready.');
-} else {
-  console.log('Installing TrueBlink dependencies from package-lock.json…');
-  const result = spawnSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['ci', '--no-audit', '--no-fund'], {
-    cwd: analysis, stdio: 'inherit', shell: process.platform === 'win32', windowsHide: true,
-  });
-  if (result.error) throw result.error;
-  if (result.status !== 0) process.exit(result.status || 1);
-  await writeFile(marker, fingerprint);
+import { join } from 'node:path';
+import { projectRoot } from './paths.mjs';
+import { npm } from './process.mjs';
+const [major, minor] = process.versions.node.split('.').map(Number);
+if (major < 22 || (major === 22 && minor < 13)) throw new Error('Node.js 22.13 or newer is required.');
+for (const name of ['analysis', 'asteroids']) {
+  const cwd = join(projectRoot, 'apps', name), marker = join(cwd, 'node_modules', '.spherex-lock');
+  const hash = createHash('sha256').update(await readFile(join(cwd, 'package-lock.json'))).digest('hex');
+  const ready = await access(join(cwd, 'node_modules', 'vite', 'bin', 'vite.js')).then(() => true, () => false);
+  if (!ready || await readFile(marker, 'utf8').catch(() => '') !== hash) {
+    console.log(`Installing ${name} dependencies…`);
+    await npm(['ci', '--no-audit', '--no-fund'], { cwd });
+    await writeFile(marker, hash);
+  }
 }
+console.log('Web dependencies are ready. Python setup: npm run setup:python');
